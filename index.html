@@ -231,19 +231,34 @@
                 </div>
                 <button onclick="resetTransform()" class="bg-slate-700 hover:bg-slate-600 text-xs py-1.5 rounded transition mt-1">Reset Correcties</button>
             </div>
-            <!-- 5. Kleurmenging & Schildersadvies -->
+            <!-- 5. Kleurmenging, Kleur-checker & Receptenmaker -->
             <div class="flex flex-col gap-2 border-t border-slate-700 pt-3">
-                <label class="font-semibold text-sm text-slate-300">5. Kleurmenging & Schildersadvies</label>
+                <label class="font-semibold text-sm text-slate-300">5. Kleur-checker & Receptenmaker</label>
                 <div id="colorInfo" class="bg-slate-900 p-3 rounded border border-slate-700 flex flex-col gap-2">
                     <div class="flex items-center gap-3">
                         <div id="colorPreview" class="w-10 h-10 rounded border border-slate-600 bg-slate-800 shrink-0"></div>
                         <div class="text-xs flex flex-col gap-0.5">
                             <span id="rgbValue" class="font-mono">RGB: -</span>
+                            <span id="tempValue" class="font-semibold text-amber-300">Ondertoon: -</span>
                             <span id="mixAdvice" class="text-slate-300 font-medium">Mengadvies: Klik op afbeelding</span>
                         </div>
                     </div>
+                    
+                    <!-- Knop om recept op te slaan -->
+                    <button onclick="saveCurrentRecipe()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-semibold py-1.5 rounded transition mt-1 hidden" id="saveRecipeBtn">
+                        💾 Voeg toe aan Kleurenrecepten
+                    </button>
+
                     <div id="paintOrderAdvice" class="text-xs text-indigo-300 border-t border-slate-800 pt-2 hidden">
                         <!-- Wordt dynamisch gevuld -->
+                    </div>
+                </div>
+
+                <!-- Overzicht opgeslagen recepten van dit project -->
+                <div class="flex flex-col gap-1 mt-1">
+                    <span class="text-xs text-slate-400 font-semibold">Opgeslagen Recepten voor dit Project:</span>
+                    <div id="recipeListContainer" class="bg-slate-900 border border-slate-700 rounded p-2 max-h-32 overflow-y-auto flex flex-col gap-1.5 text-xs text-slate-300">
+                        <span class="text-slate-500 italic text-[11px]">Nog geen recepten opgeslagen. Klik op een kleur en bewaar het recept!</span>
                     </div>
                 </div>
             </div>
@@ -251,7 +266,7 @@
             <div class="flex flex-col gap-3 border-t border-slate-700 pt-3">
                 <label class="font-semibold text-sm text-slate-300">6. Notities & Voltooien</label>
                 <div class="flex flex-col gap-1">
-                    <span class="text-xs text-slate-400">Kleurrecepten / Notities</span>
+                    <span class="text-xs text-slate-400">Algemene Notities</span>
                     <textarea id="projectNotes" placeholder="Bijv. Lucht = Ultramarijn + Wit..." class="bg-slate-900 border border-slate-700 rounded p-2 text-xs text-slate-200 h-16 focus:border-indigo-500 outline-none resize-none"></textarea>
                 </div>
                 <div class="flex flex-col gap-1">
@@ -297,6 +312,8 @@
         let loadedImage = null;
         let mirrorH = false;
         let mirrorV = false;
+        let currentSelectedColorData = null; // Houdt laatst geklikte kleur bij voor receptenmaker
+        window.projectRecipes = []; // Array om recepten in op te slaan voor dit project
         
         window.showToast = function(message) {
             const toastText = document.getElementById('toastText');
@@ -575,6 +592,23 @@
             document.getElementById('colorPreview').style.backgroundColor = `rgb(${r},${g},${b})`;
             document.getElementById('rgbValue').innerText = `RGB: (${r}, ${g}, ${b})`;
             
+            // Kleur-checker: Warm vs Koud ondertoon bepalen
+            let temperature = "";
+            let tempColorClass = "text-amber-300";
+            if (r > b + 15 || (r > g && g > b && (r - b) > 20)) {
+                temperature = "Warm (Rood/Geel/Oranje ondertoon)";
+                tempColorClass = "text-amber-400";
+            } else if (b > r + 10 || (b >= g && b >= r)) {
+                temperature = "Koud (Blauwe/Koelere ondertoon)";
+                tempColorClass = "text-sky-400";
+            } else {
+                temperature = "Neutraal / Balans";
+                tempColorClass = "text-emerald-400";
+            }
+            const tempEl = document.getElementById('tempValue');
+            tempEl.innerText = `Ondertoon: ${temperature}`;
+            tempEl.className = `font-semibold ${tempColorClass}`;
+
             // Kleurmenging logica
             let advice = "";
             const maxRGB = Math.max(r, g, b);
@@ -582,44 +616,90 @@
             const diff = maxRGB - minRGB;
 
             if (r > 210 && g > 210 && b > 210) {
-                advice = "Wit / Hooglicht (Gebruik Titaanwit, eventueel klein tikje geel/grijs).";
+                advice = "Wit / Hooglicht (Titaanwit + tikje geel/grijs).";
             } else if (r < 50 && g < 50 && b < 50) {
-                advice = "Diepzwart of Schaduw (Gebruik Ivoorzwart of Umber met Ultramarijnblauw).";
+                advice = "Diepzwart / Schaduw (Ivoorzwart + Ultramarijn).";
             } else if (diff < 25 && r < 180) {
-                advice = "Neutrale Grijstint / Schaduw (Meng Wit met Zwart en een tikje Blauw of Ombré).";
+                advice = "Neutraal Grijs (Wit + Zwart + tikje Blauw/Ombré).";
             } else if (r > 130 && g > 100 && b > 70 && r > b && (r - b) < 70) {
-                advice = "Aardetint / Huidskleur (Meng Wit, Geel Oker, eventueel Sienna of Geroest Rood).";
+                advice = "Huidskleur / Aardetint (Wit + Geel Oker + Sienna).";
             } else if (r > 90 && g < 80 && b < 60 && r > (g + b)) {
-                advice = "Warme Aardetint / Bruin (Gebruik Ombrébruin of Siennabruin, bijsturen met Oker of Wit).";
+                advice = "Warm Bruin (Ombrébruin of Siennabruin + Oker).";
             } else if (r > g && r > b) {
-                advice = "Rood- / Oranjetint (Meng Rood of Geroest Rood met Geel Oker en Wit).";
+                advice = "Rood- / Oranjetint (Rood + Geel Oker + Wit).";
             } else if (g > r && g > b) {
-                advice = "Groentint (Meng Geel met Blauw / Ultramarijn; voeg Oker of Umber toe om te dimmen).";
+                advice = "Groentint (Geel + Ultramarijnblauw + tikje Umber).";
             } else if (b > r && b > g) {
-                advice = "Blauwtint (Gebruik Ultramarijnblauw of Cyaan, aan te sterken met Wit of heel tikje Zwart).";
+                advice = "Blauwtint (Ultramarijnblauw + Wit + tikje Zwart).";
             } else {
-                advice = "Complexer mengsel (Probeer te starten met Oker, Umber en Wit).";
+                advice = "Complexer mengsel (Start met Oker, Umber en Wit).";
             }
 
             document.getElementById('mixAdvice').innerText = `Mengadvies: ${advice}`;
+
+            // Sla op in tijdelijke variabele voor receptenmaker
+            currentSelectedColorData = {
+                rgb: `(${r}, ${g}, ${b})`,
+                temp: temperature,
+                advice: advice,
+                hex: `rgb(${r},${g},${b})`
+            };
+            document.getElementById('saveRecipeBtn').classList.remove('hidden');
 
             // Schildersadvies: waar te beginnen / volgorde van werken
             const orderEl = document.getElementById('paintOrderAdvice');
             orderEl.classList.remove('hidden');
 
             let orderText = "";
-            let relY = y / canvas.height; // Positie van boven (0) naar beneden (1)
+            let relY = y / canvas.height;
 
             if (relY < 0.35) {
-                orderText = "🎨 **Schildersadvies (Bovenste vlak / Achtergrond):**<br>• Schilder dit soort achtergrondpartijen of luchten **altijd als eerste**.<br>• Werk van achteren naar voren: breng eerst de grote basisvlakken aan en schilder hier later fijnere details overheen.";
+                orderText = "🎨 **Schildersadvies (Achtergrond):**<br>• Schilder dit **als eerste**.<br>• Werk van achteren naar voren (grote vlakken eerst, details later).";
             } else if (relY > 0.70) {
-                orderText = "🎨 **Schildersadvies (Ooghoogte / Voorgrond / Object):**<br>• Dit is een belangrijk detail of voorgrondelement.<br>• Schilder dit **pas nadat** de achtergrond volledig droog is.<br>• Zet eerst de grove schaduwen en middentonen neer, en voeg als *allerlaatste* de heldere hooglichten toe.";
+                orderText = "🎨 **Schildersadvies (Voorgrond / Detail):**<br>• Schilder dit **pas als de achtergrond droog is**.<br>• Zet eerst schaduwen neer, hooglichten als *allerlaatste*.";
             } else {
-                orderText = "🎨 **Schildersadvies (Middenzone / Onderwerp):**<br>• Dit is onderdeel van de middengronden.<br>• Dek eerst de grote egale vlakken af met een grove kwast. Breng daarna de kleurnuances en overgangen aan.";
+                orderText = "🎨 **Schildersadvies (Middenzone):**<br>• Dek eerst de grote egale vlakken af met een grove kwast. Voeg daarna kleurnuances toe.";
             }
 
             orderEl.innerHTML = orderText;
         });
+
+        // Receptenmaker logica
+        window.saveCurrentRecipe = function() {
+            if (!currentSelectedColorData) return;
+            window.projectRecipes.push(currentSelectedColorData);
+            renderRecipeList();
+            showToast("Kleurrecept opgeslagen! 💾");
+        };
+
+        function renderRecipeList() {
+            const container = document.getElementById('recipeListContainer');
+            if (window.projectRecipes.length === 0) {
+                container.innerHTML = '<span class="text-slate-500 italic text-[11px]">Nog geen recepten opgeslagen. Klik op een kleur en bewaar het recept!</span>';
+                return;
+            }
+            container.innerHTML = '';
+            window.projectRecipes.forEach((recipe, index) => {
+                const itemEl = document.createElement('div');
+                itemEl.className = "flex items-center justify-between bg-slate-800 p-1.5 rounded border border-slate-700 text-[11px]";
+                itemEl.innerHTML = `
+                    <div class="flex items-center gap-2 overflow-hidden">
+                        <div class="w-4 h-4 rounded-full border border-slate-600 shrink-0" style="background-color: ${recipe.hex};"></div>
+                        <div class="overflow-hidden truncate">
+                            <span class="font-mono text-indigo-300">RGB ${recipe.rgb}</span> - <span class="text-slate-300">${recipe.advice}</span>
+                        </div>
+                    </div>
+                    <button onclick="removeRecipe(${index})" class="text-red-400 hover:text-red-300 px-1 font-bold">✕</button>
+                `;
+                container.appendChild(itemEl);
+            });
+        }
+
+        window.removeRecipe = function(index) {
+            window.projectRecipes.splice(index, 1);
+            renderRecipeList();
+            showToast("Recept verwijderd");
+        };
 
         window.saveCurrentAsProject = async function() {
             if (!window.originalImageSrc) {
@@ -638,6 +718,7 @@
                     notes: document.getElementById('projectNotes').value,
                     hours: document.getElementById('projectHours').value,
                     originalImage: window.originalImageSrc,
+                    recipes: window.projectRecipes, // Slaat ook alle gemaakte recepten op in de cloud!
                     type: 'project'
                 };
                 await addDoc(collection(db, "schilder_projecten"), data);
@@ -666,6 +747,7 @@
                     notes: document.getElementById('projectNotes').value,
                     hours: document.getElementById('projectHours').value,
                     originalImage: window.originalImageSrc,
+                    recipes: window.projectRecipes,
                     type: 'finished'
                 };
                 await addDoc(collection(db, "schilder_projecten"), data);
@@ -716,7 +798,7 @@
                                 <div class="overflow-hidden flex flex-col gap-0.5">
                                     <h3 class="font-semibold text-sm text-slate-200 truncate">${item.title}</h3>
                                     <p class="text-[11px] text-slate-400">📅 ${item.date} • 📏 ${item.width}x${item.height}cm</p>
-                                    <p class="text-[11px] text-indigo-400 font-medium">🖌️ ${item.paintType || 'Acrylverf'} op ${item.surfaceType || 'Doek'} (${item.hours || 0}u)</p>
+                                    <p class="text-[11px] text-indigo-400 font-medium">🖌️ ${item.paintType || 'Acrylverf'} op ${item.surfaceType || 'Doek'} (${item.hours || 0}u) • 🎨 ${item.recipes ? item.recipes.length : 0} recepten</p>
                                     ${item.notes ? `<p class="text-[11px] text-slate-300 italic truncate max-w-xs">📝 "${item.notes}"</p>` : ''}
                                 </div>
                             </div>
@@ -755,7 +837,7 @@
                                 <div class="overflow-hidden flex flex-col gap-0.5">
                                     <h3 class="font-semibold text-sm text-slate-200 truncate">${item.title} 🏆</h3>
                                     <p class="text-[11px] text-slate-400">📅 ${item.date} • 📏 ${item.width}x${item.height}cm</p>
-                                    <p class="text-[11px] text-amber-400 font-medium">🖌️ ${item.paintType || 'Acrylverf'} op ${item.surfaceType || 'Doek'} • Totaal: ${item.hours || 0} uur</p>
+                                    <p class="text-[11px] text-amber-400 font-medium">🖌️ ${item.paintType || 'Acrylverf'} • Totaal: ${item.hours || 0} uur</p>
                                     ${item.notes ? `<p class="text-[11px] text-slate-300 italic truncate max-w-xs">📝 "${item.notes}"</p>` : ''}
                                 </div>
                             </div>
@@ -785,6 +867,10 @@
             if (item.surfaceType) document.getElementById('surfaceType').value = item.surfaceType;
             if (item.notes) document.getElementById('projectNotes').value = item.notes;
             if (item.hours) document.getElementById('projectHours').value = item.hours;
+            
+            // Laad opgeslagen recepten
+            window.projectRecipes = item.recipes || [];
+            renderRecipeList();
             
             if (item.originalImage) {
                 window.originalImageSrc = item.originalImage;
