@@ -19,9 +19,21 @@
             padding: 0 !important;
             margin: 0 !important;
         }
+        /* Stijl voor de zwevende terugknop in theatermodus */
+        #exitTheaterBtn {
+            display: none;
+        }
+        .theater-mode #exitTheaterBtn {
+            display: flex !important;
+        }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col relative">
+
+    <!-- Zwevende knop om theatermodus te verlaten (altijd zichtbaar in theatermodus) -->
+    <button id="exitTheaterBtn" onclick="toggleTheaterMode()" class="fixed top-4 right-4 z-50 bg-red-600/80 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg backdrop-blur items-center gap-1.5 transition">
+        ✕ Sluit Beamer / Theatermodus
+    </button>
 
     <!-- Header -->
     <header class="bg-slate-800 border-b border-slate-700 p-4 flex justify-between items-center">
@@ -127,7 +139,7 @@
                 </div>
             </div>
 
-            <!-- 6. Mijn Voltooide Schilderij (Galerij) -->
+            <!-- 6. Voltooid Schilderij Opslaan -->
             <div class="flex flex-col gap-2 border-t border-slate-700 pt-3">
                 <label class="font-semibold text-sm text-slate-300">6. Voltooid Schilderij Opslaan</label>
                 <p class="text-xs text-slate-400">Upload een foto van je eindresultaat om het bij dit project te bewaren.</p>
@@ -223,8 +235,6 @@
         // Afbeelding tekenen en raster bijwerken
         function drawImage() {
             if (!imageCanvas.classList.contains('hidden')) {
-                // We herladen het origineel van de canvas data of bewaren het img object
-                // Voor eenvoud hertekenen we op basis van filters
                 const img = new Image();
                 img.onload = function() {
                     ctx.filter = `
@@ -439,9 +449,17 @@
             reader.readAsText(file);
         });
 
+        // Theatermodus wisselen
         function toggleTheaterMode() {
             document.body.classList.toggle('theater-mode');
         }
+
+        // Ook afsluiten met Escape toets
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && document.body.classList.contains('theater-mode')) {
+                toggleTheaterMode();
+            }
+        });
     </script>
 </body>
 </html>
