@@ -19,13 +19,6 @@
     <button id="exitTheaterBtn" onclick="toggleTheaterMode()" class="fixed top-4 right-4 z-50 bg-red-600/85 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg backdrop-blur items-center gap-1.5 transition">
         ✕ Sluit Beamer / Theatermodus
     </button>
-    <!-- Modal voor grote weergave eindresultaat -->
-    <div id="imageModal" class="fixed inset-0 z-50 bg-black/80 flex items-center justify-center hidden p-4">
-        <div class="relative max-w-4xl max-h-[90vh]">
-            <button onclick="closeModal()" class="absolute -top-10 right-0 bg-red-600 text-white px-3 py-1 rounded text-sm font-bold">Sluiten ✕</button>
-            <img id="modalImg" class="max-w-full max-h-[85vh] object-contain rounded border border-slate-700" alt="Eindresultaat groot">
-        </div>
-    </div>
     <!-- Modal voor Lopende Projecten -->
     <div id="projectsModal" class="fixed inset-0 z-50 bg-black/80 flex items-center justify-center hidden p-4">
         <div class="bg-slate-800 border border-slate-700 rounded-xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
@@ -33,7 +26,7 @@
                 <h2 class="font-bold text-lg text-slate-200">📁 Mijn Lopende Projecten (<span id="countProjects">0</span>)</h2>
                 <button onclick="closeModalByName('projectsModal')" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1 rounded text-sm transition">Sluiten ✕</button>
             </div>
-            <div id="projectsList" class="p-4 flex-1 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div id="projectsList" class="p-4 flex-1 overflow-y-auto flex flex-col gap-3">
                 <!-- Wordt dynamisch gevuld -->
             </div>
         </div>
@@ -45,7 +38,7 @@
                 <h2 class="font-bold text-lg text-slate-200">🏆 Mijn Afgewerkte Schilderijen (<span id="countFinished">0</span>)</h2>
                 <button onclick="closeModalByName('finishedModal')" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1 rounded text-sm transition">Sluiten ✕</button>
             </div>
-            <div id="finishedList" class="p-4 flex-1 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div id="finishedList" class="p-4 flex-1 overflow-y-auto flex flex-col gap-3">
                 <!-- Wordt dynamisch gevuld -->
             </div>
         </div>
@@ -89,17 +82,38 @@
                     ☁️ Opslaan in Cloud (Lopend)
                 </button>
             </div>
-            <!-- 2. Doekgrootte -->
-            <div class="flex flex-col gap-2 border-t border-slate-700 pt-3">
-                <label class="font-semibold text-sm text-slate-300">2. Doekgrootte (cm)</label>
+            <!-- 2. Doekgrootte & Materialen -->
+            <div class="flex flex-col gap-3 border-t border-slate-700 pt-3">
+                <label class="font-semibold text-sm text-slate-300">2. Doekgrootte & Materialen</label>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
-                        <span class="text-xs text-slate-400">Breedte</span>
+                        <span class="text-xs text-slate-400">Breedte (cm)</span>
                         <input type="number" id="canvasWidth" value="80" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm">
                     </div>
                     <div>
-                        <span class="text-xs text-slate-400">Hoogte</span>
+                        <span class="text-xs text-slate-400">Hoogte (cm)</span>
                         <input type="number" id="canvasHeight" value="60" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <span class="text-xs text-slate-400">Verfsoort</span>
+                        <select id="paintType" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-slate-200">
+                            <option value="Acrylverf">Acrylverf</option>
+                            <option value="Olieverf">Olieverf</option>
+                            <option value="Aquarel">Aquarel</option>
+                            <option value="Gouache">Gouache</option>
+                            <option value="Gemengde techniek">Gemengd</option>
+                        </select>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-400">Ondergrond</span>
+                        <select id="surfaceType" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-slate-200">
+                            <option value="Katoen doek">Katoen doek</option>
+                            <option value="Linnen doek">Linnen doek</option>
+                            <option value="Schilderspaneel">Schilderspaneel</option>
+                            <option value="Papier">Papier</option>
+                        </select>
                     </div>
                 </div>
             </div>
@@ -185,16 +199,19 @@
                     </div>
                 </div>
             </div>
-            <!-- 6. Afgewerkt Schilderij Opslaan -->
-            <div class="flex flex-col gap-2 border-t border-slate-700 pt-3">
-                <label class="font-semibold text-sm text-slate-300">6. Klaar met schilderen?</label>
-                <input type="file" id="finishedPaintingUpload" accept="image/*" class="file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-600 file:text-white hover:file:bg-amber-700 text-xs cursor-pointer">
-                
-                <div id="finishedContainer" class="hidden mt-2 relative cursor-pointer group" onclick="openModal()">
-                    <img id="finishedPreviewImg" class="w-full h-32 object-cover rounded border border-slate-600 group-hover:opacity-90 transition" alt="Voltooid schilderij">
+            <!-- 6. Notities & Voltooien -->
+            <div class="flex flex-col gap-3 border-t border-slate-700 pt-3">
+                <label class="font-semibold text-sm text-slate-300">6. Notities & Voltooien</label>
+                <div class="flex flex-col gap-1">
+                    <span class="text-xs text-slate-400">Kleurrecepten / Notities</span>
+                    <textarea id="projectNotes" placeholder="Bijv. Lucht = Ultramarijn + Wit..." class="bg-slate-900 border border-slate-700 rounded p-2 text-xs text-slate-200 h-16 focus:border-indigo-500 outline-none resize-none"></textarea>
                 </div>
-                <button onclick="saveCurrentAsFinished()" class="mt-2 w-full bg-amber-600 hover:bg-amber-500 text-white text-xs py-2.5 rounded-lg font-semibold transition shadow flex items-center justify-center gap-1">
-                    🏆 Opslaan in Cloud (Afgewerkt)
+                <div class="flex flex-col gap-1">
+                    <span class="text-xs text-slate-400">Gewerkte uren</span>
+                    <input type="number" id="projectHours" value="0" min="0" step="0.5" class="bg-slate-900 border border-slate-700 rounded p-2 text-xs text-slate-200">
+                </div>
+                <button onclick="markCurrentAsFinished()" class="mt-1 w-full bg-amber-600 hover:bg-amber-500 text-white text-xs py-2.5 rounded-lg font-semibold transition shadow flex items-center justify-center gap-1">
+                    🏆 Markeer als Afgewerkt Schilderij
                 </button>
             </div>
         </aside>
@@ -229,7 +246,6 @@
         const db = getFirestore(app);
 
         window.originalImageSrc = null;
-        window.finishedImageSrc = null;
         let loadedImage = null;
         
         window.showToast = function(message) {
@@ -244,7 +260,6 @@
             }, 3000);
         }
 
-        // Hulpfunctie om afbeeldingen automatisch te comprimeren tot ze onder de database-limiet vallen
         function compressImage(file, maxWidth = 800, quality = 0.7) {
             return new Promise((resolve) => {
                 const reader = new FileReader();
@@ -282,14 +297,6 @@
                 redrawCanvas();
             };
             img.src = window.originalImageSrc;
-        });
-        
-        document.getElementById('finishedPaintingUpload').addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            window.finishedImageSrc = await compressImage(file, 900, 0.75);
-            document.getElementById('finishedPreviewImg').src = window.finishedImageSrc;
-            document.getElementById('finishedContainer').classList.remove('hidden');
         });
         
         function redrawCanvas() {
@@ -411,38 +418,44 @@
                     date: new Date().toLocaleDateString('nl-NL'),
                     width: document.getElementById('canvasWidth').value,
                     height: document.getElementById('canvasHeight').value,
+                    paintType: document.getElementById('paintType').value,
+                    surfaceType: document.getElementById('surfaceType').value,
+                    notes: document.getElementById('projectNotes').value,
+                    hours: document.getElementById('projectHours').value,
                     originalImage: window.originalImageSrc,
-                    finishedImage: null,
                     type: 'project'
                 };
                 await addDoc(collection(db, "schilder_projecten"), data);
                 updateCounters();
-                showToast("Opgeslagen in Firestore Cloud! ☁️");
+                showToast("Opgeslagen als Lopend Project! ☁️");
             } catch (err) {
                 console.error(err);
                 alert("Fout bij opslaan: " + err.message);
             }
         };
 
-        window.saveCurrentAsFinished = async function() {
-            if (!window.finishedImageSrc) {
-                alert("Upload eerst een foto van je afgewerkte schilderij!");
+        window.markCurrentAsFinished = async function() {
+            if (!window.originalImageSrc) {
+                alert("Laad eerst een voorbeeld-ontwerp in!");
                 return;
             }
-            showToast("Bezig met opslaan van voltooide foto...");
+            showToast("Bezig met voltooien...");
             try {
                 const data = {
                     title: document.getElementById('projectName').value,
                     date: new Date().toLocaleDateString('nl-NL'),
                     width: document.getElementById('canvasWidth').value,
                     height: document.getElementById('canvasHeight').value,
-                    originalImage: window.originalImageSrc || "",
-                    finishedImage: window.finishedImageSrc,
+                    paintType: document.getElementById('paintType').value,
+                    surfaceType: document.getElementById('surfaceType').value,
+                    notes: document.getElementById('projectNotes').value,
+                    hours: document.getElementById('projectHours').value,
+                    originalImage: window.originalImageSrc,
                     type: 'finished'
                 };
                 await addDoc(collection(db, "schilder_projecten"), data);
                 updateCounters();
-                showToast("Afgewerkt schilderij opgeslagen! 🏆");
+                showToast("Gefeliciteerd! Opgeslagen bij Afgewerkt Schilderij 🏆");
             } catch (err) {
                 console.error(err);
                 alert("Fout bij opslaan: " + err.message);
@@ -470,7 +483,7 @@
 
         window.openProjectsGallery = async function() {
             const listEl = document.getElementById('projectsList');
-            listEl.innerHTML = '<p class="text-slate-400 text-center col-span-2 py-4">Laden...</p>';
+            listEl.innerHTML = '<p class="text-slate-400 text-center py-4">Laden...</p>';
             document.getElementById('projectsModal').classList.remove('hidden');
             try {
                 const querySnapshot = await getDocs(collection(db, "schilder_projecten"));
@@ -481,33 +494,35 @@
                     if (item.type !== 'finished') {
                         count++;
                         const card = document.createElement('div');
-                        card.className = "bg-slate-900 border border-slate-700 rounded-lg p-3 flex gap-3 items-center justify-between";
+                        card.className = "bg-slate-900 border border-slate-700 rounded-lg p-3 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between";
                         card.innerHTML = `
                             <div class="flex items-center gap-3 overflow-hidden">
-                                <img src="${item.originalImage}" class="w-14 h-14 object-cover rounded border border-slate-700 shrink-0">
-                                <div class="overflow-hidden">
+                                <img src="${item.originalImage}" class="w-16 h-16 object-cover rounded border border-slate-700 shrink-0">
+                                <div class="overflow-hidden flex flex-col gap-0.5">
                                     <h3 class="font-semibold text-sm text-slate-200 truncate">${item.title}</h3>
-                                    <p class="text-[11px] text-slate-400">${item.date} • ${item.width}x${item.height}cm</p>
+                                    <p class="text-[11px] text-slate-400">📅 ${item.date} • 📏 ${item.width}x${item.height}cm</p>
+                                    <p class="text-[11px] text-indigo-400 font-medium">🖌️ ${item.paintType || 'Acrylverf'} op ${item.surfaceType || 'Doek'} (${item.hours || 0}u)</p>
+                                    ${item.notes ? `<p class="text-[11px] text-slate-300 italic truncate max-w-xs">📝 "${item.notes}"</p>` : ''}
                                 </div>
                             </div>
-                            <div class="flex flex-col gap-1 shrink-0">
-                                <button onclick="loadCloudItem('${d.id}')" class="bg-indigo-600 text-white text-xs px-2.5 py-1 rounded">Laad</button>
-                                <button onclick="deleteCloudItem('${d.id}', openProjectsGallery)" class="bg-red-600 text-white text-xs px-2.5 py-1 rounded">Wis</button>
+                            <div class="flex gap-1.5 self-end sm:self-center shrink-0">
+                                <button onclick="loadCloudItem('${d.id}')" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-1.5 rounded transition">Laad</button>
+                                <button onclick="deleteCloudItem('${d.id}', openProjectsGallery)" class="bg-red-600 hover:bg-red-500 text-white text-xs px-3 py-1.5 rounded transition">Wis</button>
                             </div>
                         `;
                         listEl.appendChild(card);
                     }
                 });
-                if (count === 0) listEl.innerHTML = '<p class="text-slate-400 text-center col-span-2 py-4">Geen lopende projecten gevonden.</p>';
+                if (count === 0) listEl.innerHTML = '<p class="text-slate-400 text-center py-4">Geen lopende projecten gevonden.</p>';
             } catch(err) {
                 console.error(err);
-                listEl.innerHTML = '<p class="text-red-400 text-center col-span-2 py-4">Fout bij laden.</p>';
+                listEl.innerHTML = '<p class="text-red-400 text-center py-4">Fout bij laden.</p>';
             }
         };
 
         window.openFinishedGallery = async function() {
             const listEl = document.getElementById('finishedList');
-            listEl.innerHTML = '<p class="text-slate-400 text-center col-span-2 py-4">Laden...</p>';
+            listEl.innerHTML = '<p class="text-slate-400 text-center py-4">Laden...</p>';
             document.getElementById('finishedModal').classList.remove('hidden');
             try {
                 const querySnapshot = await getDocs(collection(db, "schilder_projecten"));
@@ -518,27 +533,29 @@
                     if (item.type === 'finished') {
                         count++;
                         const card = document.createElement('div');
-                        card.className = "bg-slate-900 border border-slate-700 rounded-lg p-3 flex gap-3 items-center justify-between";
+                        card.className = "bg-slate-900 border border-slate-700 rounded-lg p-3 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between";
                         card.innerHTML = `
                             <div class="flex items-center gap-3 overflow-hidden">
-                                <img src="${item.finishedImage || item.originalImage}" class="w-14 h-14 object-cover rounded border border-slate-700 shrink-0">
-                                <div class="overflow-hidden">
-                                    <h3 class="font-semibold text-sm text-slate-200 truncate">${item.title}</h3>
-                                    <p class="text-[11px] text-slate-400">${item.date} • ${item.width}x${item.height}cm</p>
+                                <img src="${item.originalImage}" class="w-16 h-16 object-cover rounded border border-slate-700 shrink-0">
+                                <div class="overflow-hidden flex flex-col gap-0.5">
+                                    <h3 class="font-semibold text-sm text-slate-200 truncate">${item.title} 🏆</h3>
+                                    <p class="text-[11px] text-slate-400">📅 ${item.date} • 📏 ${item.width}x${item.height}cm</p>
+                                    <p class="text-[11px] text-amber-400 font-medium">🖌️ ${item.paintType || 'Acrylverf'} op ${item.surfaceType || 'Doek'} • Totaal: ${item.hours || 0} uur</p>
+                                    ${item.notes ? `<p class="text-[11px] text-slate-300 italic truncate max-w-xs">📝 "${item.notes}"</p>` : ''}
                                 </div>
                             </div>
-                            <div class="flex flex-col gap-1 shrink-0">
-                                <button onclick="loadCloudItem('${d.id}')" class="bg-amber-600 text-white text-xs px-2.5 py-1 rounded">Laad</button>
-                                <button onclick="deleteCloudItem('${d.id}', openFinishedGallery)" class="bg-red-600 text-white text-xs px-2.5 py-1 rounded">Wis</button>
+                            <div class="flex gap-1.5 self-end sm:self-center shrink-0">
+                                <button onclick="loadCloudItem('${d.id}')" class="bg-amber-600 hover:bg-amber-500 text-white text-xs px-3 py-1.5 rounded transition">Laad</button>
+                                <button onclick="deleteCloudItem('${d.id}', openFinishedGallery)" class="bg-red-600 hover:bg-red-500 text-white text-xs px-3 py-1.5 rounded transition">Wis</button>
                             </div>
                         `;
                         listEl.appendChild(card);
                     }
                 });
-                if (count === 0) listEl.innerHTML = '<p class="text-slate-400 text-center col-span-2 py-4">Geen afgewerkte schilderijen gevonden.</p>';
+                if (count === 0) listEl.innerHTML = '<p class="text-slate-400 text-center py-4">Geen afgewerkte schilderijen gevonden.</p>';
             } catch(err) {
                 console.error(err);
-                listEl.innerHTML = '<p class="text-red-400 text-center col-span-2 py-4">Fout bij laden.</p>';
+                listEl.innerHTML = '<p class="text-red-400 text-center py-4">Fout bij laden.</p>';
             }
         };
 
@@ -549,6 +566,10 @@
             document.getElementById('projectName').value = item.title;
             document.getElementById('canvasWidth').value = item.width;
             document.getElementById('canvasHeight').value = item.height;
+            if (item.paintType) document.getElementById('paintType').value = item.paintType;
+            if (item.surfaceType) document.getElementById('surfaceType').value = item.surfaceType;
+            if (item.notes) document.getElementById('projectNotes').value = item.notes;
+            if (item.hours) document.getElementById('projectHours').value = item.hours;
             
             if (item.originalImage) {
                 window.originalImageSrc = item.originalImage;
@@ -560,11 +581,6 @@
                     redrawCanvas();
                 };
                 img.src = window.originalImageSrc;
-            }
-            if (item.finishedImage) {
-                window.finishedImageSrc = item.finishedImage;
-                document.getElementById('finishedPreviewImg').src = window.finishedImageSrc;
-                document.getElementById('finishedContainer').classList.remove('hidden');
             }
             closeModalByName('projectsModal');
             closeModalByName('finishedModal');
@@ -578,7 +594,6 @@
             refreshCallback();
         };
 
-        window.closeModal = () => document.getElementById('imageModal').classList.add('hidden');
         window.closeModalByName = (id) => document.getElementById(id).classList.add('hidden');
         window.toggleTheaterMode = () => document.body.classList.toggle('theater-mode');
         window.resetTransform = () => {
