@@ -42,27 +42,48 @@
         </div>
     </div>
 
-    <!-- Modal voor Projecten Galerij -->
-    <div id="galleryModal" class="fixed inset-0 z-50 bg-black/80 flex items-center justify-center hidden p-4">
+    <!-- Modal voor Lopende Projecten -->
+    <div id="projectsModal" class="fixed inset-0 z-50 bg-black/80 flex items-center justify-center hidden p-4">
         <div class="bg-slate-800 border border-slate-700 rounded-xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
             <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-850">
-                <h2 class="font-bold text-lg text-slate-200">🖼️ Mijn Schilderijen Galerij</h2>
-                <button onclick="closeGallery()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1 rounded text-sm transition">Sluiten ✕</button>
+                <h2 class="font-bold text-lg text-slate-200">📁 Mijn Lopende Projecten (<span id="countProjects">0</span>)</h2>
+                <button onclick="closeModalByName('projectsModal')" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1 rounded text-sm transition">Sluiten ✕</button>
             </div>
-            <div id="galleryList" class="p-4 flex-1 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div id="projectsList" class="p-4 flex-1 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <!-- Wordt dynamisch gevuld -->
             </div>
         </div>
     </div>
 
+    <!-- Modal voor Afgewerkte Schilderijen -->
+    <div id="finishedModal" class="fixed inset-0 z-50 bg-black/80 flex items-center justify-center hidden p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-850">
+                <h2 class="font-bold text-lg text-slate-200">🏆 Mijn Afgewerkte Schilderijen (<span id="countFinished">0</span>)</h2>
+                <button onclick="closeModalByName('finishedModal')" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1 rounded text-sm transition">Sluiten ✕</button>
+            </div>
+            <div id="finishedList" class="p-4 flex-1 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <!-- Wordt dynamisch gevuld -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Melding banner (Toast) -->
+    <div id="toastMessage" class="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-2xl font-medium text-sm transition-all duration-300 transform translate-y-20 opacity-0 pointer-events-none flex items-center gap-2">
+        <span>✓</span> <span id="toastText">Opgeslagen!</span>
+    </div>
+
     <!-- Header -->
-    <header class="bg-slate-800 border-b border-slate-700 p-4 flex justify-between items-center">
+    <header class="bg-slate-800 border-b border-slate-700 p-4 flex flex-wrap justify-between items-center gap-2">
         <h1 class="text-xl font-bold flex items-center gap-2">🎨 Schilder & Projectie Assistent</h1>
-        <div class="flex gap-2">
-            <button onclick="openGallery()" class="bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded text-sm font-semibold transition flex items-center gap-1.5">
-                📁 Mijn Galerij (<span id="projectCount">0</span>)
+        <div class="flex flex-wrap gap-2">
+            <button onclick="openProjectsGallery()" class="bg-indigo-600 hover:bg-indigo-500 px-3 py-2 rounded text-sm font-semibold transition flex items-center gap-1.5 shadow">
+                📁 Lopende Projecten (<span id="badgeProjects">0</span>)
             </button>
-            <button onclick="toggleTheaterMode()" class="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded text-sm font-semibold transition">🎬 Theatermodus (Beamer)</button>
+            <button onclick="openFinishedGallery()" class="bg-amber-600 hover:bg-amber-500 px-3 py-2 rounded text-sm font-semibold transition flex items-center gap-1.5 shadow">
+                🏆 Afgewerkte Schilderijen (<span id="badgeFinished">0</span>)
+            </button>
+            <button onclick="toggleTheaterMode()" class="bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded text-sm font-semibold transition">🎬 Beamermodus</button>
         </div>
     </header>
 
@@ -80,14 +101,16 @@
 
             <!-- 1. Afbeelding uploaden -->
             <div class="flex flex-col gap-2 border-t border-slate-700 pt-3">
-                <label class="font-semibold text-sm text-slate-300">1. Ontwerp Inladen</label>
+                <label class="font-semibold text-sm text-slate-300">1. Voorbeeld / Ontwerp Inladen</label>
                 <input type="file" id="imageUpload" accept="image/*" class="file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-500 file:text-white hover:file:bg-indigo-600 text-sm cursor-pointer">
             </div>
 
-            <!-- 1B. Project Opslaan naar Galerij -->
+            <!-- Actieknop Lopend Project -->
             <div class="flex gap-2">
-                <button onclick="saveProjectToLocalStorage()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-xs py-2 rounded font-semibold transition shadow">💾 Sla op in Galerij</button>
-                <button onclick="exportProjectJson()" class="bg-slate-700 hover:bg-slate-600 text-xs px-3 py-2 rounded font-semibold transition" title="Exporteer als los JSON-bestand">📥 Exporteer</button>
+                <button onclick="saveCurrentAsProject()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-xs py-2.5 rounded-lg font-semibold transition shadow flex items-center justify-center gap-1">
+                    💾 Bewaar als Lopend Project
+                </button>
+                <button onclick="exportProjectJson()" class="bg-slate-700 hover:bg-slate-600 text-xs px-3 py-2.5 rounded-lg font-semibold transition" title="Exporteer als bestand op pc">📥 Exporteer</button>
             </div>
 
             <!-- 2. Doekgrootte -->
@@ -178,15 +201,20 @@
                 </div>
             </div>
 
-            <!-- 6. Voltooid Schilderij Opslaan -->
+            <!-- 6. Afgewerkt Schilderij Opslaan -->
             <div class="flex flex-col gap-2 border-t border-slate-700 pt-3">
-                <label class="font-semibold text-sm text-slate-300">6. Voltooid Schilderij Opslaan</label>
-                <p class="text-xs text-slate-400">Upload een foto van je eindresultaat bij dit project.</p>
-                <input type="file" id="finishedPaintingUpload" accept="image/*" class="file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-teal-600 file:text-white hover:file:bg-teal-700 text-xs cursor-pointer">
+                <label class="font-semibold text-sm text-slate-300">6. Klaar met schilderen?</label>
+                <p class="text-xs text-slate-400">Upload een foto van je eindresultaat en sla hem op bij je afgewerkte schilderijen.</p>
+                <input type="file" id="finishedPaintingUpload" accept="image/*" class="file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-600 file:text-white hover:file:bg-amber-700 text-xs cursor-pointer">
+                
                 <div id="finishedContainer" class="hidden mt-2 relative cursor-pointer group" onclick="openModal()">
                     <img id="finishedPreviewImg" class="w-full h-32 object-cover rounded border border-slate-600 group-hover:opacity-90 transition" alt="Voltooid schilderij">
-                    <span class="absolute bottom-1 right-1 bg-black/80 text-[10px] px-1.5 py-0.5 rounded text-white group-hover:bg-indigo-600 transition">🔍 Klik om te openen</span>
+                    <span class="absolute bottom-1 right-1 bg-black/80 text-[10px] px-1.5 py-0.5 rounded text-white group-hover:bg-amber-600 transition">🔍 Klik om te openen</span>
                 </div>
+
+                <button onclick="saveCurrentAsFinished()" class="mt-2 w-full bg-amber-600 hover:bg-amber-500 text-white text-xs py-2.5 rounded-lg font-semibold transition shadow flex items-center justify-center gap-1">
+                    🏆 Bewaar als Afgewerkt Schilderij
+                </button>
             </div>
 
         </aside>
@@ -238,16 +266,36 @@
         const finishedPreviewImg = document.getElementById('finishedPreviewImg');
         const imageModal = document.getElementById('imageModal');
         const modalImg = document.getElementById('modalImg');
-        const galleryModal = document.getElementById('galleryModal');
-        const galleryList = document.getElementById('galleryList');
-        const projectCount = document.getElementById('projectCount');
+
+        const projectsModal = document.getElementById('projectsModal');
+        const finishedModal = document.getElementById('finishedModal');
+        const projectsList = document.getElementById('projectsList');
+        const finishedList = document.getElementById('finishedList');
+        
+        const countProjects = document.getElementById('countProjects');
+        const countFinished = document.getElementById('countFinished');
+        const badgeProjects = document.getElementById('badgeProjects');
+        const badgeFinished = document.getElementById('badgeFinished');
+
+        const toastMessage = document.getElementById('toastMessage');
+        const toastText = document.getElementById('toastText');
 
         let originalImageSrc = null;
         let finishedImageSrc = null;
-        let currentProjectId = null; // Als we een bestaand project bewerken
+        let currentProjectId = null;
 
-        // Bij laden pagina: galerij tellers bijwerken
-        updateGalleryCount();
+        // Bij laden pagina: tellers bijwerken
+        updateCounters();
+
+        function showToast(message) {
+            toastText.innerText = message;
+            toastMessage.classList.remove('translate-y-20', 'opacity-0');
+            toastMessage.classList.add('translate-y-0', 'opacity-100');
+            setTimeout(() => {
+                toastMessage.classList.remove('translate-y-0', 'opacity-100');
+                toastMessage.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
 
         // Afbeelding inladen
         imageUpload.addEventListener('change', (e) => {
@@ -435,33 +483,34 @@
             imageModal.classList.add('hidden');
         }
 
-        // --- GALERIJ & LOCALSTORAGE FUNCTIES ---
+        function closeModalByName(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
 
-        function getStoredProjects() {
+        // --- STORAGE & OPSLAAN FUNCTIES ---
+
+        function getStoredData(key) {
             try {
-                return JSON.parse(localStorage.getItem('schilder_projects')) || [];
+                return JSON.parse(localStorage.getItem(key)) || [];
             } catch (e) {
                 return [];
             }
         }
 
-        function updateGalleryCount() {
-            const projects = getStoredProjects();
-            projectCount.innerText = projects.length;
+        function updateCounters() {
+            const projects = getStoredData('schilder_lopende_projecten');
+            const finished = getStoredData('schilder_afgewerkte_schilderijen');
+            
+            countProjects.innerText = projects.length;
+            countFinished.innerText = finished.length;
+            badgeProjects.innerText = projects.length;
+            badgeFinished.innerText = finished.length;
         }
 
-        function saveProjectToLocalStorage() {
-            if (!originalImageSrc) {
-                alert("Laad eerst een ontwerp in voordat je opslaat!");
-                return;
-            }
-
-            const title = projectNameInput.value.trim() || "Naamloos Schilderij";
-            const projects = getStoredProjects();
-
-            const projectData = {
+        function collectCurrentData() {
+            return {
                 id: currentProjectId || 'proj_' + Date.now(),
-                title: title,
+                title: projectNameInput.value.trim() || "Naamloos Schilderij",
                 date: new Date().toLocaleDateString('nl-NL', { day: '2-digit', month: 'short', year: 'numeric' }),
                 width: document.getElementById('canvasWidth').value,
                 height: document.getElementById('canvasHeight').value,
@@ -477,34 +526,91 @@
                 originalImage: originalImageSrc,
                 finishedImage: finishedImageSrc
             };
-
-            // Bestaande bijwerken of nieuwe toevoegen
-            const index = projects.findIndex(p => p.id === projectData.id);
-            if (index !== -1) {
-                projects[index] = projectData;
-            } else {
-                projects.unshift(index, 0, projectData); // Vooraan toevoegen
-                projects.push(projectData);
-            }
-
-            localStorage.setItem('schilder_projects', JSON.stringify(projects));
-            currentProjectId = projectData.id;
-            updateGalleryCount();
-            alert(`Project "${title}" succesvol opgeslagen in je galerij!`);
         }
 
-        function openGallery() {
-            const projects = getStoredProjects();
-            galleryList.innerHTML = '';
+        function saveCurrentAsProject() {
+            if (!originalImageSrc) {
+                alert("Laad eerst een voorbeeld-ontwerp in voordat je het opslaat!");
+                return;
+            }
+            const data = collectCurrentData();
+            let projects = getStoredData('schilder_lopende_projecten');
+            
+            const index = projects.findIndex(p => p.id === data.id);
+            if (index !== -1) {
+                projects[index] = data;
+            } else {
+                projects.unshift(data);
+            }
+
+            localStorage.setItem('schilder_lopende_projecten', JSON.stringify(projects));
+            currentProjectId = data.id;
+            updateCounters();
+            showToast(`Lopend project "${data.title}" opgeslagen!`);
+        }
+
+        function saveCurrentAsFinished() {
+            if (!finishedImageSrc) {
+                alert("Upload eerst een foto van je afgewerkte schilderij bij stap 6!");
+                return;
+            }
+            const data = collectCurrentData();
+            let finished = getStoredData('schilder_afgewerkte_schilderijen');
+            
+            const index = finished.findIndex(p => p.id === data.id);
+            if (index !== -1) {
+                finished[index] = data;
+            } else {
+                finished.unshift(data);
+            }
+
+            localStorage.setItem('schilder_afgewerkte_schilderijen', JSON.stringify(finished));
+            currentProjectId = data.id;
+            updateCounters();
+            showToast(`Afgewerkt schilderij "${data.title}" opgeslagen! 🏆`);
+        }
+
+        function openProjectsGallery() {
+            const projects = getStoredData('schilder_lopende_projecten');
+            projectsList.innerHTML = '';
 
             if (projects.length === 0) {
-                galleryList.innerHTML = `<p class="text-slate-400 text-center col-span-2 py-8 text-sm">Nog geen opgeslagen schilderijen in je galerij.</p>`;
+                projectsList.innerHTML = `<p class="text-slate-400 text-center col-span-2 py-8 text-sm">Geen lopende projecten gevonden.</p>`;
             } else {
                 projects.forEach(proj => {
                     const card = document.createElement('div');
                     card.className = "bg-slate-900 border border-slate-700 rounded-lg p-3 flex gap-3 items-center justify-between hover:border-indigo-500 transition";
                     
-                    // Miniatuur weergave (van referentie of eindresultaat)
+                    card.innerHTML = `
+                        <div class="flex items-center gap-3 overflow-hidden">
+                            <img src="${proj.originalImage}" class="w-14 h-14 object-cover rounded border border-slate-700 shrink-0" alt="Miniatuur">
+                            <div class="overflow-hidden">
+                                <h3 class="font-semibold text-sm text-slate-200 truncate">${proj.title}</h3>
+                                <p class="text-[11px] text-slate-400">${proj.date} • ${proj.width}x${proj.height}cm</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-col gap-1 shrink-0">
+                            <button onclick="loadProjectData('${proj.id}', 'schilder_lopende_projecten')" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-2.5 py-1 rounded transition">Laad</button>
+                            <button onclick="deleteItem('${proj.id}', 'schilder_lopende_projecten', openProjectsGallery)" class="bg-red-600/70 hover:bg-red-600 text-white text-xs px-2.5 py-1 rounded transition">Wis</button>
+                        </div>
+                    `;
+                    projectsList.appendChild(card);
+                });
+            }
+            projectsModal.classList.remove('hidden');
+        }
+
+        function openFinishedGallery() {
+            const finished = getStoredData('schilder_afgewerkte_schilderijen');
+            finishedList.innerHTML = '';
+
+            if (finished.length === 0) {
+                finishedList.innerHTML = `<p class="text-slate-400 text-center col-span-2 py-8 text-sm">Geen afgewerkte schilderijen gevonden.</p>`;
+            } else {
+                finished.forEach(proj => {
+                    const card = document.createElement('div');
+                    card.className = "bg-slate-900 border border-slate-700 rounded-lg p-3 flex gap-3 items-center justify-between hover:border-amber-500 transition";
+                    
                     const thumbSrc = proj.finishedImage || proj.originalImage;
 
                     card.innerHTML = `
@@ -513,28 +619,23 @@
                             <div class="overflow-hidden">
                                 <h3 class="font-semibold text-sm text-slate-200 truncate">${proj.title}</h3>
                                 <p class="text-[11px] text-slate-400">${proj.date} • ${proj.width}x${proj.height}cm</p>
-                                <span class="text-[10px] text-teal-400">${proj.finishedImage ? '✓ Eindresultaat aanwezig' : 'Alleen ontwerp'}</span>
+                                <span class="text-[10px] text-amber-400">🏆 Voltooid</span>
                             </div>
                         </div>
                         <div class="flex flex-col gap-1 shrink-0">
-                            <button onclick="loadProject('${proj.id}')" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-2.5 py-1 rounded transition">Laad</button>
-                            <button onclick="deleteProject('${proj.id}')" class="bg-red-600/70 hover:bg-red-600 text-white text-xs px-2.5 py-1 rounded transition">Wis</button>
+                            <button onclick="loadProjectData('${proj.id}', 'schilder_afgewerkte_schilderijen')" class="bg-amber-600 hover:bg-amber-500 text-white text-xs px-2.5 py-1 rounded transition">Laad</button>
+                            <button onclick="deleteItem('${proj.id}', 'schilder_afgewerkte_schilderijen', openFinishedGallery)" class="bg-red-600/70 hover:bg-red-600 text-white text-xs px-2.5 py-1 rounded transition">Wis</button>
                         </div>
                     `;
-                    galleryList.appendChild(card);
+                    finishedList.appendChild(card);
                 });
             }
-
-            galleryModal.classList.remove('hidden');
+            finishedModal.classList.remove('hidden');
         }
 
-        function closeGallery() {
-            galleryModal.classList.add('hidden');
-        }
-
-        function loadProject(id) {
-            const projects = getStoredProjects();
-            const proj = projects.find(p => p.id === id);
+        function loadProjectData(id, storageKey) {
+            const list = getStoredData(storageKey);
+            const proj = list.find(p => p.id === id);
             if (!proj) return;
 
             currentProjectId = proj.id;
@@ -569,42 +670,27 @@
             if (proj.grid) gridCanvas.classList.remove('hidden');
             else gridCanvas.classList.add('hidden');
 
-            closeGallery();
+            closeModalByName('projectsModal');
+            closeModalByName('finishedModal');
+            showToast(`Geladen: "${proj.title}"`);
         }
 
-        function deleteProject(id) {
-            if (!confirm("Weet je zeker dat je dit project wilt verwijderen uit je galerij?")) return;
-            let projects = getStoredProjects();
-            projects = projects.filter(p => p.id !== id);
-            localStorage.setItem('schilder_projects', JSON.stringify(projects));
-            updateGalleryCount();
-            openGallery(); // Vernieuw de lijst
+        function deleteItem(id, storageKey, refreshCallback) {
+            if (!confirm("Weet je zeker dat je dit wilt verwijderen?")) return;
+            let list = getStoredData(storageKey);
+            list = list.filter(p => p.id !== id);
+            localStorage.setItem(storageKey, JSON.stringify(list));
+            updateCounters();
+            refreshCallback();
         }
 
-        // Optioneel: Los JSON-bestand exporteren als back-up
         function exportProjectJson() {
             if (!originalImageSrc) {
                 alert("Laad eerst een ontwerp in!");
                 return;
             }
-            const projectData = {
-                title: projectNameInput.value,
-                width: document.getElementById('canvasWidth').value,
-                height: document.getElementById('canvasHeight').value,
-                opacity: rangeOpacity.value,
-                contrast: rangeContrast.value,
-                brightness: rangeBrightness.value,
-                grayscale: checkGrayscale.checked,
-                grid: checkGrid.checked,
-                gridDensity: gridDensity.value,
-                rotate: rangeRotate.value,
-                skewX: rangeSkewX.value,
-                skewY: rangeSkewY.value,
-                originalImage: originalImageSrc,
-                finishedImage: finishedImageSrc
-            };
-
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(projectData));
+            const data = collectCurrentData();
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
             const downloadAnchor = document.createElement('a');
             downloadAnchor.setAttribute("href", dataStr);
             downloadAnchor.setAttribute("download", `${projectNameInput.value.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_project.json`);
@@ -613,7 +699,6 @@
             downloadAnchor.remove();
         }
 
-        // Theatermodus wisselen
         function toggleTheaterMode() {
             document.body.classList.toggle('theater-mode');
         }
@@ -622,7 +707,8 @@
             if (e.key === 'Escape') {
                 if (document.body.classList.contains('theater-mode')) toggleTheaterMode();
                 closeModal();
-                closeGallery();
+                closeModalByName('projectsModal');
+                closeModalByName('finishedModal');
             }
         });
     </script>
