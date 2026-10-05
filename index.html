@@ -7,7 +7,6 @@
     <!-- Tailwind CSS voor modern design -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Extra stijlen voor projector / theatermodus */
         .theater-mode {
             background-color: black !important;
         }
@@ -89,7 +88,7 @@
                 </div>
             </div>
 
-            <!-- 4. Hoekcorrectie (Keystone / Transform) -->
+            <!-- 4. Hoekcorrectie -->
             <div class="flex flex-col gap-3 border-t border-slate-700 pt-3">
                 <label class="font-semibold text-sm text-slate-300">4. Hoekcorrectie (Beamer)</label>
                 <div>
@@ -110,12 +109,12 @@
             <!-- 5. Kleurmenging Assistent -->
             <div class="flex flex-col gap-2 border-t border-slate-700 pt-3">
                 <label class="font-semibold text-sm text-slate-300">5. Kleurmenging Assistent</label>
-                <p class="text-xs text-slate-400">Klik ergens op het ontwerp om de kleur te analyseren.</p>
+                <p class="text-xs text-slate-400">Klik op een kleur in de afbeelding om te analyseren.</p>
                 <div id="colorInfo" class="bg-slate-900 p-3 rounded border border-slate-700 flex items-center gap-3">
-                    <div id="colorPreview" class="w-10 h-10 rounded border border-slate-600 bg-slate-800"></div>
-                    <div class="text-xs flex flex-col gap-0.5">
-                        <span id="rgbValue">RGB: -</span>
-                        <span id="mixAdvice">Mengadvies: Klik op afbeelding</span>
+                    <div id="colorPreview" class="w-10 h-10 rounded border border-slate-600 bg-slate-800 shrink-0"></div>
+                    <div class="text-xs flex flex-col gap-1">
+                        <span id="rgbValue" class="font-mono">RGB: -</span>
+                        <span id="mixAdvice" class="text-slate-300">Mengadvies: Klik op afbeelding</span>
                     </div>
                 </div>
             </div>
@@ -129,13 +128,11 @@
                 <p class="text-sm">Upload een foto via het paneel links om te beginnen.</p>
             </div>
             
-            <!-- Container voor transformaties -->
+            <!-- Container voor transformaties en raster -->
             <div id="transformContainer" class="relative transition-transform duration-75 origin-center flex items-center justify-center">
                 <canvas id="imageCanvas" class="max-w-full max-h-[75vh] object-contain shadow-2xl cursor-crosshair hidden"></canvas>
-                <!-- Grid overlay -->
-                <div id="gridOverlay" class="absolute inset-0 pointer-events-none hidden grid grid-cols-4 grid-rows-4 border border-indigo-500/30">
-                    <!-- Raster lijnen worden via CSS/JS getoond -->
-                </div>
+                <!-- Dynamisch raster canvas overlay -->
+                <canvas id="gridCanvas" class="absolute inset-0 pointer-events-none hidden"></canvas>
             </div>
         </section>
 
@@ -145,12 +142,13 @@
     <script>
         const imageUpload = document.getElementById('imageUpload');
         const imageCanvas = document.getElementById('imageCanvas');
+        const gridCanvas = document.getElementById('gridCanvas');
         const ctx = imageCanvas.getContext('2d');
+        const gridCtx = gridCanvas.getContext('2d');
+        
         const placeholderText = document.getElementById('placeholderText');
         const transformContainer = document.getElementById('transformContainer');
-        const gridOverlay = document.getElementById('gridOverlay');
 
-        // Inputs
         const rangeOpacity = document.getElementById('rangeOpacity');
         const rangeContrast = document.getElementById('rangeContrast');
         const rangeBrightness = document.getElementById('rangeBrightness');
@@ -179,6 +177,7 @@
                     originalImage = img;
                     placeholderText.style.display = 'none';
                     imageCanvas.classList.remove('hidden');
+                    if (checkGrid.checked) gridCanvas.classList.remove('hidden');
                     drawImage();
                 }
                 img.src = event.target.result;
@@ -186,12 +185,14 @@
             reader.readAsDataURL(file);
         });
 
-        // Afbeelding tekenen op canvas met filters
+        // Afbeelding tekenen en raster bijwerken
         function drawImage() {
             if (!originalImage) return;
 
             imageCanvas.width = originalImage.width;
             imageCanvas.height = originalImage.height;
+            gridCanvas.width = originalImage.width;
+            gridCanvas.height = originalImage.height;
 
             ctx.filter = `
                 opacity(${rangeOpacity.value}%) 
@@ -203,27 +204,55 @@
             ctx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
             ctx.drawImage(originalImage, 0, 0);
 
-            // Update UI labels
+            if (checkGrid.checked) {
+                drawGridLines();
+            }
+
             document.getElementById('valOpacity').innerText = rangeOpacity.value + '%';
             document.getElementById('valContrast').innerText = rangeContrast.value + '%';
             document.getElementById('valBrightness').innerText = rangeBrightness.value + '%';
         }
 
-        // Event listeners voor filters
+        // Hulplijn raster tekenen op de overlay canvas
+        function drawGridLines() {
+            gridCtx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
+            gridCtx.strokeStyle = 'rgba(99, 102, 241, 0.6)'; // Indigo kleur met transparantie
+            gridCtx.lineWidth = Math.max(2, gridCanvas.width / 300);
+
+            const cols = 4;
+            const rows = 4;
+            const stepX = gridCanvas.width / cols;
+            const stepY = gridCanvas.height / rows;
+
+            for (let i = 1; i < cols; i++) {
+                gridCtx.beginPath();
+                gridCtx.moveTo(i * stepX, 0);
+                gridCtx.lineTo(i * stepX, gridCanvas.height);
+                gridCtx.stroke();
+            }
+
+            for (let j = 1; j < rows; j++) {
+                gridCtx.beginPath();
+                gridCtx.moveTo(0, j * stepY);
+                gridCtx.lineTo(gridCanvas.width, j * stepY);
+                gridCtx.stroke();
+            }
+        }
+
+        checkGrid.addEventListener('change', () => {
+            if (checkGrid.checked && originalImage) {
+                gridCanvas.classList.remove('hidden');
+                drawGridLines();
+            } else {
+                gridCanvas.classList.add('hidden');
+            }
+        });
+
         [rangeOpacity, rangeContrast, rangeBrightness, checkGrayscale].forEach(element => {
             element.addEventListener('input', drawImage);
         });
 
-        // Raster tonen/verbergen
-        checkGrid.addEventListener('change', () => {
-            if (checkGrid.checked) {
-                gridOverlay.classList.remove('hidden');
-            } else {
-                gridOverlay.classList.add('hidden');
-            }
-        });
-
-        // Hoekcorrectie & Transformatie toepassen
+        // Transformaties / hoekcorrectie
         function updateTransform() {
             const rot = rangeRotate.value;
             const skewX = rangeSkewX.value;
@@ -247,7 +276,7 @@
             updateTransform();
         }
 
-        // Kleuranalyse bij klikken op canvas
+        // Verbeterde kleurmenging assistent op basis van werkelijke RGB-waarden
         imageCanvas.addEventListener('click', (e) => {
             if (!originalImage) return;
 
@@ -255,8 +284,8 @@
             const scaleX = imageCanvas.width / rect.width;
             const scaleY = imageCanvas.height / rect.height;
 
-            const x = (e.clientX - rect.left) * scaleX;
-            const y = (e.clientY - rect.top) * scaleY;
+            const x = Math.floor((e.clientX - rect.left) * scaleX);
+            const y = Math.floor((e.clientY - rect.top) * scaleY);
 
             const pixel = ctx.getImageData(x, y, 1, 1).data;
             const r = pixel[0], g = pixel[1], b = pixel[2];
@@ -264,18 +293,31 @@
             colorPreview.style.backgroundColor = `rgb(${r},${g},${b})`;
             rgbValue.innerText = `RGB: (${r}, ${g}, ${b})`;
 
-            // Eenvoudig mengadvies genereren op basis van RGB
-            let advice = "Neutraal / Gemengd";
-            if (r > 200 && g > 200 && b > 200) advice = "Veel Wit nodig + klein tikje grijs/geel";
-            else if (r < 50 && g < 50 && b < 50) advice = "Donker / Zwart (of Ultramarijn + Umber)";
-            else if (r > g && r > b) advice = "Roodtint: Basis rood + tikje geel of wit";
-            else if (g > r && g > b) advice = "Groentint: Blauw + Geel mengen";
-            else if (b > r && b > g) advice = " Blauwtint: Ultramarijn / Cyaan + Wit";
+            // Uitgebreider en slimmer mengadvies voor schilders
+            let advice = "";
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            const diff = max - min;
 
-            mixAdvice.innerText = `Mengadvies: ${advice}`;
+            if (diff < 20) {
+                if (max > 200) advice = "Lichtgrijs/Wit: Veel titaanwit + minuscuul beetje omber/grijs.";
+                else if (max < 60) advice = "Diepzwart: Lamp zwart + tikje ultramarijn blauw of omber.";
+                else advice = "Neutraal grijs: Wit mengen met zwart en een druppel van de aangrenzende kleurtint.";
+            } else if (r === max) {
+                if (g > b + 30) advice = "Oranjetint: Vermeng rood met geel (en eventueel wit voor helderheid).";
+                else if (b > g + 30) advice = "Paars- / Roztint: Vermeng rood met ultramarijn blauw + wit.";
+                else advice = "Roodtint: Primair rood, verdiepen met kraplak/omber of oplichten met wit/geel.";
+            } else if (g === max) {
+                if (r > b) advice = "Olijf- / Geelgroen: Geel mengen met blauw en een tikje oker/rood.";
+                else advice = "Blauwgroen (Cyaan/Turquoise): Blauw mengen met geel/groen + veel wit.";
+            } else {
+                if (r > g) advice = "Blauw-paarse tint: Ultramarijn blauw met rood en wit.";
+                else advice = "Blauwtint: Cyaan/Ultramarijn blauw, lichter maken met wit, verdiepen met zwart.";
+            }
+
+            mixAdvice.innerText = advice;
         });
 
-        // Theatermodus (Fullscreen voor Beamer)
         function toggleTheaterMode() {
             document.body.classList.toggle('theater-mode');
         }
