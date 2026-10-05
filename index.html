@@ -35,6 +35,14 @@
         ✕ Sluit Beamer / Theatermodus
     </button>
 
+    <!-- Modal voor grote weergave eindresultaat -->
+    <div id="imageModal" class="fixed inset-0 z-50 bg-black/80 flex items-center justify-center hidden p-4">
+        <div class="relative max-w-4xl max-h-[90vh]">
+            <button onclick="closeModal()" class="absolute -top-10 right-0 bg-red-600 text-white px-3 py-1 rounded text-sm font-bold">Sluiten ✕</button>
+            <img id="modalImg" class="max-w-full max-h-[85vh] object-contain rounded border border-slate-700" alt="Eindresultaat groot">
+        </div>
+    </div>
+
     <!-- Header -->
     <header class="bg-slate-800 border-b border-slate-700 p-4 flex justify-between items-center">
         <h1 class="text-xl font-bold flex items-center gap-2">🎨 Schilder & Projectie Assistent</h1>
@@ -156,9 +164,9 @@
                 <label class="font-semibold text-sm text-slate-300">6. Voltooid Schilderij Opslaan</label>
                 <p class="text-xs text-slate-400">Upload een foto van je eindresultaat om het bij dit project te bewaren.</p>
                 <input type="file" id="finishedPaintingUpload" accept="image/*" class="file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-teal-600 file:text-white hover:file:bg-teal-700 text-xs cursor-pointer">
-                <div id="finishedContainer" class="hidden mt-2 relative">
-                    <img id="finishedPreviewImg" class="w-full h-32 object-cover rounded border border-slate-600" alt="Voltooid schilderij">
-                    <span class="absolute bottom-1 right-1 bg-black/70 text-[10px] px-1.5 py-0.5 rounded text-white">Eindresultaat</span>
+                <div id="finishedContainer" class="hidden mt-2 relative cursor-pointer group" onclick="openModal()">
+                    <img id="finishedPreviewImg" class="w-full h-32 object-cover rounded border border-slate-600 group-hover:opacity-90 transition" alt="Voltooid schilderij">
+                    <span class="absolute bottom-1 right-1 bg-black/80 text-[10px] px-1.5 py-0.5 rounded text-white group-hover:bg-indigo-600 transition">🔍 Klik om te openen</span>
                 </div>
             </div>
 
@@ -210,6 +218,8 @@
         const finishedPaintingUpload = document.getElementById('finishedPaintingUpload');
         const finishedContainer = document.getElementById('finishedContainer');
         const finishedPreviewImg = document.getElementById('finishedPreviewImg');
+        const imageModal = document.getElementById('imageModal');
+        const modalImg = document.getElementById('modalImg');
 
         let originalImageSrc = null;
         let finishedImageSrc = null;
@@ -271,7 +281,7 @@
             document.getElementById('valBrightness').innerText = rangeBrightness.value + '%';
         }
 
-        // Hulplijn raster tekenen op basis van gekozen dichtheid
+        // Hulplijn raster tekenen
         function drawGridLines() {
             gridCtx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
             gridCtx.strokeStyle = 'rgba(99, 102, 241, 0.6)';
@@ -393,6 +403,17 @@
             reader.readAsDataURL(file);
         });
 
+        // Modals voor eindresultaat groot openen/sluiten
+        function openModal() {
+            if (finishedImageSrc) {
+                modalImg.src = finishedImageSrc;
+                imageModal.classList.remove('hidden');
+            }
+        }
+        function closeModal() {
+            imageModal.classList.add('hidden');
+        }
+
         // Project opslaan naar bestand (.json)
         function saveProject() {
             if (!originalImageSrc) {
@@ -456,6 +477,8 @@
                         finishedImageSrc = data.finishedImage;
                         finishedPreviewImg.src = finishedImageSrc;
                         finishedContainer.classList.remove('hidden');
+                    } else {
+                        finishedContainer.classList.add('hidden');
                     }
 
                     updateTransform();
