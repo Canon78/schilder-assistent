@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schilder & Kleurenpalet Assistent</title>
+    <!-- Tailwind CSS voor modern design -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Extra stijlen voor projector / theatermodus */
+        .theater-mode {
+            background-color: black !important;
+        }
+        .theater-mode header, .theater-mode aside, .theater-mode footer {
+            display: none !important;
+        }
+        .theater-mode main {
+            width: 100vw !important;
+            height: 100vh !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-slate-800 border-b border-slate-700 p-4 flex justify-between items-center">
+        <h1 class="text-xl font-bold flex items-center gap-2">🎨 Schilder & Projectie Assistent</h1>
+        <div class="flex gap-2">
+            <button onclick="toggleTheaterMode()" class="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded text-sm font-semibold transition">🎬 Theatermodus (Beamer)</button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col md:flex-row p-4 gap-4 overflow-hidden">
+        
+        <!-- Sidebar / Bedieningspaneel -->
+        <aside id="control-panel" class="w-full md:w-96 bg-slate-800 p-4 rounded-xl border border-slate-700 flex flex-col gap-4 overflow-y-auto max-h-[calc(100vh-120px)]">
+            
+            <!-- 1. Afbeelding uploaden -->
+            <div class="flex flex-col gap-2">
+                <label class="font-semibold text-sm text-slate-300">1. Ontwerp Inladen</label>
+                <input type="file" id="imageUpload" accept="image/*" class="file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-500 file:text-white hover:file:bg-indigo-600 text-sm cursor-pointer">
+            </div>
+
+            <!-- 2. Doekgrootte -->
+            <div class="flex flex-col gap-2 border-t border-slate-700 pt-3">
+                <label class="font-semibold text-sm text-slate-300">2. Doekgrootte (cm)</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <span class="text-xs text-slate-400">Breedte</span>
+                        <input type="number" id="canvasWidth" value="80" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm">
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-400">Hoogte</span>
+                        <input type="number" id="canvasHeight" value="60" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Aanpassingen & Filters -->
+            <div class="flex flex-col gap-3 border-t border-slate-700 pt-3">
+                <label class="font-semibold text-sm text-slate-300">3. Ontwerp Aanpassen</label>
+                
+                <div>
+                    <div class="flex justify-between text-xs text-slate-400"><span>Transparantie</span><span id="valOpacity">100%</span></div>
+                    <input type="range" id="rangeOpacity" min="10" max="100" value="100" class="w-full accent-indigo-500">
+                </div>
+
+                <div>
+                    <div class="flex justify-between text-xs text-slate-400"><span>Contrast</span><span id="valContrast">100%</span></div>
+                    <input type="range" id="rangeContrast" min="50" max="200" value="100" class="w-full accent-indigo-500">
+                </div>
+
+                <div>
+                    <div class="flex justify-between text-xs text-slate-400"><span>Helderheid</span><span id="valBrightness">100%</span></div>
+                    <input type="range" id="rangeBrightness" min="50" max="200" value="100" class="w-full accent-indigo-500">
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="checkGrayscale" class="accent-indigo-500 w-4 h-4">
+                    <label for="checkGrayscale" class="text-sm">Zwart-wit / Schetsmodus</label>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="checkGrid" class="accent-indigo-500 w-4 h-4">
+                    <label for="checkGrid" class="text-sm">Toon Hulplijn Raster</label>
+                </div>
+            </div>
+
+            <!-- 4. Hoekcorrectie (Keystone / Transform) -->
+            <div class="flex flex-col gap-3 border-t border-slate-700 pt-3">
+                <label class="font-semibold text-sm text-slate-300">4. Hoekcorrectie (Beamer)</label>
+                <div>
+                    <div class="flex justify-between text-xs text-slate-400"><span>Rotatie</span><span id="valRotate">0°</span></div>
+                    <input type="range" id="rangeRotate" min="-180" max="180" value="0" class="w-full accent-indigo-500">
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs text-slate-400"><span>Horizontale Vervorming (Skew X)</span><span id="valSkewX">0</span></div>
+                    <input type="range" id="rangeSkewX" min="-50" max="50" value="0" class="w-full accent-indigo-500">
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs text-slate-400"><span>Verticale Vervorming (Skew Y)</span><span id="valSkewY">0</span></div>
+                    <input type="range" id="rangeSkewY" min="-50" max="50" value="0" class="w-full accent-indigo-500">
+                </div>
+                <button onclick="resetTransform()" class="bg-slate-700 hover:bg-slate-600 text-xs py-1.5 rounded transition">Reset Hoekcorrectie</button>
+            </div>
+
+            <!-- 5. Kleurmenging Assistent -->
+            <div class="flex flex-col gap-2 border-t border-slate-700 pt-3">
+                <label class="font-semibold text-sm text-slate-300">5. Kleurmenging Assistent</label>
+                <p class="text-xs text-slate-400">Klik ergens op het ontwerp om de kleur te analyseren.</p>
+                <div id="colorInfo" class="bg-slate-900 p-3 rounded border border-slate-700 flex items-center gap-3">
+                    <div id="colorPreview" class="w-10 h-10 rounded border border-slate-600 bg-slate-800"></div>
+                    <div class="text-xs flex flex-col gap-0.5">
+                        <span id="rgbValue">RGB: -</span>
+                        <span id="mixAdvice">Mengadvies: Klik op afbeelding</span>
+                    </div>
+                </div>
+            </div>
+
+        </aside>
+
+        <!-- Preview / Projectie Scherm -->
+        <section id="projection-area" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl relative flex items-center justify-center overflow-hidden">
+            <div id="placeholderText" class="text-slate-500 text-center p-6">
+                <p class="text-lg font-medium">Nog geen ontwerp geladen</p>
+                <p class="text-sm">Upload een foto via het paneel links om te beginnen.</p>
+            </div>
+            
+            <!-- Container voor transformaties -->
+            <div id="transformContainer" class="relative transition-transform duration-75 origin-center flex items-center justify-center">
+                <canvas id="imageCanvas" class="max-w-full max-h-[75vh] object-contain shadow-2xl cursor-crosshair hidden"></canvas>
+                <!-- Grid overlay -->
+                <div id="gridOverlay" class="absolute inset-0 pointer-events-none hidden grid grid-cols-4 grid-rows-4 border border-indigo-500/30">
+                    <!-- Raster lijnen worden via CSS/JS getoond -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- JavaScript Logica -->
+    <script>
+        const imageUpload = document.getElementById('imageUpload');
+        const imageCanvas = document.getElementById('imageCanvas');
+        const ctx = imageCanvas.getContext('2d');
+        const placeholderText = document.getElementById('placeholderText');
+        const transformContainer = document.getElementById('transformContainer');
+        const gridOverlay = document.getElementById('gridOverlay');
+
+        // Inputs
+        const rangeOpacity = document.getElementById('rangeOpacity');
+        const rangeContrast = document.getElementById('rangeContrast');
+        const rangeBrightness = document.getElementById('rangeBrightness');
+        const checkGrayscale = document.getElementById('checkGrayscale');
+        const checkGrid = document.getElementById('checkGrid');
+
+        const rangeRotate = document.getElementById('rangeRotate');
+        const rangeSkewX = document.getElementById('rangeSkewX');
+        const rangeSkewY = document.getElementById('rangeSkewY');
+
+        const colorPreview = document.getElementById('colorPreview');
+        const rgbValue = document.getElementById('rgbValue');
+        const mixAdvice = document.getElementById('mixAdvice');
+
+        let originalImage = null;
+
+        // Afbeelding inladen
+        imageUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    originalImage = img;
+                    placeholderText.style.display = 'none';
+                    imageCanvas.classList.remove('hidden');
+                    drawImage();
+                }
+                img.src = event.target.result;
+            }
+            reader.readAsDataURL(file);
+        });
+
+        // Afbeelding tekenen op canvas met filters
+        function drawImage() {
+            if (!originalImage) return;
+
+            imageCanvas.width = originalImage.width;
+            imageCanvas.height = originalImage.height;
+
+            ctx.filter = `
+                opacity(${rangeOpacity.value}%) 
+                contrast(${rangeContrast.value}%) 
+                brightness(${rangeBrightness.value}%) 
+                ${checkGrayscale.checked ? 'grayscale(100%)' : ''}
+            `;
+
+            ctx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+            ctx.drawImage(originalImage, 0, 0);
+
+            // Update UI labels
+            document.getElementById('valOpacity').innerText = rangeOpacity.value + '%';
+            document.getElementById('valContrast').innerText = rangeContrast.value + '%';
+            document.getElementById('valBrightness').innerText = rangeBrightness.value + '%';
+        }
+
+        // Event listeners voor filters
+        [rangeOpacity, rangeContrast, rangeBrightness, checkGrayscale].forEach(element => {
+            element.addEventListener('input', drawImage);
+        });
+
+        // Raster tonen/verbergen
+        checkGrid.addEventListener('change', () => {
+            if (checkGrid.checked) {
+                gridOverlay.classList.remove('hidden');
+            } else {
+                gridOverlay.classList.add('hidden');
+            }
+        });
+
+        // Hoekcorrectie & Transformatie toepassen
+        function updateTransform() {
+            const rot = rangeRotate.value;
+            const skewX = rangeSkewX.value;
+            const skewY = rangeSkewY.value;
+
+            transformContainer.style.transform = `rotate(${rot}deg) skew(${skewX}deg, ${skewY}deg)`;
+
+            document.getElementById('valRotate').innerText = rot + '°';
+            document.getElementById('valSkewX').innerText = skewX;
+            document.getElementById('valSkewY').innerText = skewY;
+        }
+
+        [rangeRotate, rangeSkewX, rangeSkewY].forEach(element => {
+            element.addEventListener('input', updateTransform);
+        });
+
+        function resetTransform() {
+            rangeRotate.value = 0;
+            rangeSkewX.value = 0;
+            rangeSkewY.value = 0;
+            updateTransform();
+        }
+
+        // Kleuranalyse bij klikken op canvas
+        imageCanvas.addEventListener('click', (e) => {
+            if (!originalImage) return;
+
+            const rect = imageCanvas.getBoundingClientRect();
+            const scaleX = imageCanvas.width / rect.width;
+            const scaleY = imageCanvas.height / rect.height;
+
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+
+            const pixel = ctx.getImageData(x, y, 1, 1).data;
+            const r = pixel[0], g = pixel[1], b = pixel[2];
+
+            colorPreview.style.backgroundColor = `rgb(${r},${g},${b})`;
+            rgbValue.innerText = `RGB: (${r}, ${g}, ${b})`;
+
+            // Eenvoudig mengadvies genereren op basis van RGB
+            let advice = "Neutraal / Gemengd";
+            if (r > 200 && g > 200 && b > 200) advice = "Veel Wit nodig + klein tikje grijs/geel";
+            else if (r < 50 && g < 50 && b < 50) advice = "Donker / Zwart (of Ultramarijn + Umber)";
+            else if (r > g && r > b) advice = "Roodtint: Basis rood + tikje geel of wit";
+            else if (g > r && g > b) advice = "Groentint: Blauw + Geel mengen";
+            else if (b > r && b > g) advice = " Blauwtint: Ultramarijn / Cyaan + Wit";
+
+            mixAdvice.innerText = `Mengadvies: ${advice}`;
+        });
+
+        // Theatermodus (Fullscreen voor Beamer)
+        function toggleTheaterMode() {
+            document.body.classList.toggle('theater-mode');
+        }
+    </script>
+</body>
+</html>
