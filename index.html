@@ -43,6 +43,14 @@
                 <input type="file" id="imageUpload" accept="image/*" class="file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-500 file:text-white hover:file:bg-indigo-600 text-sm cursor-pointer">
             </div>
 
+            <!-- 1B. Project Opslaan / Laden -->
+            <div class="flex gap-2 border-t border-slate-700 pt-3">
+                <button onclick="saveProject()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-xs py-2 rounded font-semibold transition">💾 Sla Project Op</button>
+                <label class="flex-1 bg-slate-700 hover:bg-slate-600 text-xs py-2 rounded font-semibold text-center cursor-pointer transition">
+                    📂 Laad Project <input type="file" id="loadProjectFile" accept=".json" class="hidden">
+                </label>
+            </div>
+
             <!-- 2. Doekgrootte -->
             <div class="flex flex-col gap-2 border-t border-slate-700 pt-3">
                 <label class="font-semibold text-sm text-slate-300">2. Doekgrootte (cm)</label>
@@ -119,6 +127,17 @@
                 </div>
             </div>
 
+            <!-- 6. Mijn Voltooide Schilderij (Galerij) -->
+            <div class="flex flex-col gap-2 border-t border-slate-700 pt-3">
+                <label class="font-semibold text-sm text-slate-300">6. Voltooid Schilderij Opslaan</label>
+                <p class="text-xs text-slate-400">Upload een foto van je eindresultaat om het bij dit project te bewaren.</p>
+                <input type="file" id="finishedPaintingUpload" accept="image/*" class="file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-teal-600 file:text-white hover:file:bg-teal-700 text-xs cursor-pointer">
+                <div id="finishedContainer" class="hidden mt-2 relative">
+                    <img id="finishedPreviewImg" class="w-full h-32 object-cover rounded border border-slate-600" alt="Voltooid schilderij">
+                    <span class="absolute bottom-1 right-1 bg-black/70 text-[10px] px-1.5 py-0.5 rounded text-white">Eindresultaat</span>
+                </div>
+            </div>
+
         </aside>
 
         <!-- Preview / Projectie Scherm -->
@@ -163,7 +182,12 @@
         const rgbValue = document.getElementById('rgbValue');
         const mixAdvice = document.getElementById('mixAdvice');
 
-        let originalImage = null;
+        const finishedPaintingUpload = document.getElementById('finishedPaintingUpload');
+        const finishedContainer = document.getElementById('finishedContainer');
+        const finishedPreviewImg = document.getElementById('finishedPreviewImg');
+
+        let originalImageSrc = null;
+        let finishedImageSrc = null;
 
         // Afbeelding inladen
         imageUpload.addEventListener('change', (e) => {
@@ -172,40 +196,51 @@
 
             const reader = new FileReader();
             reader.onload = function(event) {
-                const img = new Image();
-                img.onload = function() {
-                    originalImage = img;
-                    placeholderText.style.display = 'none';
-                    imageCanvas.classList.remove('hidden');
-                    if (checkGrid.checked) gridCanvas.classList.remove('hidden');
-                    drawImage();
-                }
-                img.src = event.target.result;
+                originalImageSrc = event.target.result;
+                loadAndDrawImage(originalImageSrc);
             }
             reader.readAsDataURL(file);
         });
 
+        function loadAndDrawImage(src) {
+            const img = new Image();
+            img.onload = function() {
+                placeholderText.style.display = 'none';
+                imageCanvas.classList.remove('hidden');
+                if (checkGrid.checked) gridCanvas.classList.remove('hidden');
+                
+                imageCanvas.width = img.width;
+                imageCanvas.height = img.height;
+                gridCanvas.width = img.width;
+                gridCanvas.height = img.height;
+
+                ctx.drawImage(img, 0, 0);
+                drawImage();
+            }
+            img.src = src;
+        }
+
         // Afbeelding tekenen en raster bijwerken
         function drawImage() {
-            if (!originalImage) return;
+            if (!imageCanvas.classList.contains('hidden')) {
+                // We herladen het origineel van de canvas data of bewaren het img object
+                // Voor eenvoud hertekenen we op basis van filters
+                const img = new Image();
+                img.onload = function() {
+                    ctx.filter = `
+                        opacity(${rangeOpacity.value}%) 
+                        contrast(${rangeContrast.value}%) 
+                        brightness(${rangeBrightness.value}%) 
+                        ${checkGrayscale.checked ? 'grayscale(100%)' : ''}
+                    `;
+                    ctx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+                    ctx.drawImage(img, 0, 0);
 
-            imageCanvas.width = originalImage.width;
-            imageCanvas.height = originalImage.height;
-            gridCanvas.width = originalImage.width;
-            gridCanvas.height = originalImage.height;
-
-            ctx.filter = `
-                opacity(${rangeOpacity.value}%) 
-                contrast(${rangeContrast.value}%) 
-                brightness(${rangeBrightness.value}%) 
-                ${checkGrayscale.checked ? 'grayscale(100%)' : ''}
-            `;
-
-            ctx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
-            ctx.drawImage(originalImage, 0, 0);
-
-            if (checkGrid.checked) {
-                drawGridLines();
+                    if (checkGrid.checked) {
+                        drawGridLines();
+                    }
+                }
+                if (originalImageSrc) img.src = originalImageSrc;
             }
 
             document.getElementById('valOpacity').innerText = rangeOpacity.value + '%';
@@ -213,14 +248,13 @@
             document.getElementById('valBrightness').innerText = rangeBrightness.value + '%';
         }
 
-        // Hulplijn raster tekenen op de overlay canvas
+        // Hulplijn raster tekenen
         function drawGridLines() {
             gridCtx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
-            gridCtx.strokeStyle = 'rgba(99, 102, 241, 0.6)'; // Indigo kleur met transparantie
+            gridCtx.strokeStyle = 'rgba(99, 102, 241, 0.6)';
             gridCtx.lineWidth = Math.max(2, gridCanvas.width / 300);
 
-            const cols = 4;
-            const rows = 4;
+            const cols = 4, rows = 4;
             const stepX = gridCanvas.width / cols;
             const stepY = gridCanvas.height / rows;
 
@@ -230,7 +264,6 @@
                 gridCtx.lineTo(i * stepX, gridCanvas.height);
                 gridCtx.stroke();
             }
-
             for (let j = 1; j < rows; j++) {
                 gridCtx.beginPath();
                 gridCtx.moveTo(0, j * stepY);
@@ -240,7 +273,7 @@
         }
 
         checkGrid.addEventListener('change', () => {
-            if (checkGrid.checked && originalImage) {
+            if (checkGrid.checked && !imageCanvas.classList.contains('hidden')) {
                 gridCanvas.classList.remove('hidden');
                 drawGridLines();
             } else {
@@ -276,9 +309,9 @@
             updateTransform();
         }
 
-        // Verbeterde kleurmenging assistent op basis van werkelijke RGB-waarden
+        // Kleurmenging assistent
         imageCanvas.addEventListener('click', (e) => {
-            if (!originalImage) return;
+            if (imageCanvas.classList.contains('hidden')) return;
 
             const rect = imageCanvas.getBoundingClientRect();
             const scaleX = imageCanvas.width / rect.width;
@@ -293,29 +326,117 @@
             colorPreview.style.backgroundColor = `rgb(${r},${g},${b})`;
             rgbValue.innerText = `RGB: (${r}, ${g}, ${b})`;
 
-            // Uitgebreider en slimmer mengadvies voor schilders
             let advice = "";
             const max = Math.max(r, g, b);
             const min = Math.min(r, g, b);
             const diff = max - min;
 
             if (diff < 20) {
-                if (max > 200) advice = "Lichtgrijs/Wit: Veel titaanwit + minuscuul beetje omber/grijs.";
-                else if (max < 60) advice = "Diepzwart: Lamp zwart + tikje ultramarijn blauw of omber.";
-                else advice = "Neutraal grijs: Wit mengen met zwart en een druppel van de aangrenzende kleurtint.";
+                if (max > 200) advice = "Lichtgrijs/Wit: Veel titaanwit + mini-druppel omber/grijs.";
+                else if (max < 60) advice = "Diepzwart: Lamp zwart + tikje ultramarijn blauw.";
+                else advice = "Neutraal grijs: Wit + zwart + druppel van de aangrenzende kleurtint.";
             } else if (r === max) {
-                if (g > b + 30) advice = "Oranjetint: Vermeng rood met geel (en eventueel wit voor helderheid).";
-                else if (b > g + 30) advice = "Paars- / Roztint: Vermeng rood met ultramarijn blauw + wit.";
-                else advice = "Roodtint: Primair rood, verdiepen met kraplak/omber of oplichten met wit/geel.";
+                if (g > b + 30) advice = "Oranjetint: Rood vermengen met geel + wit.";
+                else if (b > g + 30) advice = "Paars-/Roztint: Rood + ultramarijn blauw + wit.";
+                else advice = "Roodtint: Primair rood, verdiepen met omber of oplichten met wit/geel.";
             } else if (g === max) {
-                if (r > b) advice = "Olijf- / Geelgroen: Geel mengen met blauw en een tikje oker/rood.";
-                else advice = "Blauwgroen (Cyaan/Turquoise): Blauw mengen met geel/groen + veel wit.";
+                if (r > b) advice = "Olijfgroen: Geel + blauw + tikje oker/rood.";
+                else advice = "Blauwgroen: Blauw + geel + veel wit.";
             } else {
-                if (r > g) advice = "Blauw-paarse tint: Ultramarijn blauw met rood en wit.";
-                else advice = "Blauwtint: Cyaan/Ultramarijn blauw, lichter maken met wit, verdiepen met zwart.";
+                if (r > g) advice = "Blauwpaars: Ultramarijn blauw + rood + wit.";
+                else advice = "Blauwtint: Cyaan/Ultramarijn, lichter maken met wit.";
             }
 
             mixAdvice.innerText = advice;
+        });
+
+        // Voltooid schilderij uploaden
+        finishedPaintingUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                finishedImageSrc = event.target.result;
+                finishedPreviewImg.src = finishedImageSrc;
+                finishedContainer.classList.remove('hidden');
+            }
+            reader.readAsDataURL(file);
+        });
+
+        // Project opslaan naar bestand (.json)
+        function saveProject() {
+            if (!originalImageSrc) {
+                alert("Laad eerst een ontwerp in voordat je opslaat!");
+                return;
+            }
+
+            const projectData = {
+                width: document.getElementById('canvasWidth').value,
+                height: document.getElementById('canvasHeight').value,
+                opacity: rangeOpacity.value,
+                contrast: rangeContrast.value,
+                brightness: rangeBrightness.value,
+                grayscale: checkGrayscale.checked,
+                grid: checkGrid.checked,
+                rotate: rangeRotate.value,
+                skewX: rangeSkewX.value,
+                skewY: rangeSkewY.value,
+                originalImage: originalImageSrc,
+                finishedImage: finishedImageSrc
+            };
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(projectData));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "schilder_project.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        // Project inladen vanuit bestand (.json)
+        document.getElementById('loadProjectFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    
+                    document.getElementById('canvasWidth').value = data.width || 80;
+                    document.getElementById('canvasHeight').value = data.height || 60;
+                    rangeOpacity.value = data.opacity || 100;
+                    rangeContrast.value = data.contrast || 100;
+                    rangeBrightness.value = data.brightness || 100;
+                    checkGrayscale.checked = !!data.grayscale;
+                    checkGrid.checked = !!data.grid;
+                    rangeRotate.value = data.rotate || 0;
+                    rangeSkewX.value = data.skewX || 0;
+                    rangeSkewY.value = data.skewY || 0;
+
+                    if (data.originalImage) {
+                        originalImageSrc = data.originalImage;
+                        loadAndDrawImage(originalImageSrc);
+                    }
+
+                    if (data.finishedImage) {
+                        finishedImageSrc = data.finishedImage;
+                        finishedPreviewImg.src = finishedImageSrc;
+                        finishedContainer.classList.remove('hidden');
+                    }
+
+                    updateTransform();
+                    if (data.grid) gridCanvas.classList.remove('hidden');
+                    else gridCanvas.classList.add('hidden');
+
+                    alert("Project succesvol geladen!");
+                } catch (err) {
+                    alert("Fout bij laden van projectbestand.");
+                }
+            };
+            reader.readAsText(file);
         });
 
         function toggleTheaterMode() {
