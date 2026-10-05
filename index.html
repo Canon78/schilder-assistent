@@ -390,4 +390,307 @@
             ctx.lineWidth = Math.max(1, gridCanvas.width / 400);
             for (let i = 1; i < divisions; i++) {
                 ctx.beginPath();
-                ctx.moveTo(i * stepX,
+                ctx.moveTo(i * stepX, 0);
+                ctx.lineTo(i * stepX, gridCanvas.height);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, i * stepY);
+                ctx.lineTo(gridCanvas.width, i * stepY);
+                ctx.stroke();
+            }
+        }
+        
+        function updateAdjustment(type, source = 'range') {
+            const rangeEl = document.getElementById(`range${type}`);
+            const inputEl = document.getElementById(`input${type}Num`);
+            let val = 0;
+            if (source === 'input') {
+                val = parseInt(inputEl.value) || 0;
+                rangeEl.value = val;
+            } else {
+                val = parseInt(rangeEl.value) || 0;
+                inputEl.value = val;
+            }
+            redrawCanvas();
+        }
+
+        function updateTransform(type, source = 'range') {
+            const rangeEl = document.getElementById(`range${type}`);
+            const inputEl = document.getElementById(`input${type}Num`);
+            let val = 0;
+            if (source === 'input') {
+                val = parseInt(inputEl.value) || 0;
+                rangeEl.value = val;
+            } else {
+                val = parseInt(rangeEl.value) || 0;
+                inputEl.value = val;
+            }
+            const rotateVal = document.getElementById('rangeRotate').value;
+            const skewXVal = document.getElementById('rangeSkewX').value;
+            const skewYVal = document.getElementById('rangeSkewY').value;
+            const container = document.getElementById('transformContainer');
+            container.style.transform = `rotate(${rotateVal}deg) skew(${skewXVal}deg, ${skewYVal}deg)`;
+        }
+        
+        // Koppeling event listeners
+        ['Opacity', 'Contrast', 'Brightness'].forEach(type => {
+            document.getElementById(`range${type}`).addEventListener('input', () => updateAdjustment(type, 'range'));
+            document.getElementById(`input${type}Num`).addEventListener('input', () => updateAdjustment(type, 'input'));
+        });
+
+        // Event listeners voor doekgrootte zodat het beeld direct mee-verandert
+        ['canvasWidth', 'canvasHeight'].forEach(id => {
+            document.getElementById(id).addEventListener('input', () => {
+                redrawCanvas();
+            });
+        });
+
+        ['checkGrayscale', 'checkGrid', 'gridDensity'].forEach(id => {
+            document.getElementById(id).addEventListener('input', () => {
+                redrawCanvas();
+            });
+        });
+        
+        document.getElementById('rangeRotate').addEventListener('input', () => updateTransform('Rotate', 'range'));
+        document.getElementById('inputRotateNum').addEventListener('input', () => updateTransform('Rotate', 'input'));
+        document.getElementById('rangeSkewX').addEventListener('input', () => updateTransform('SkewX', 'range'));
+        document.getElementById('inputSkewXNum').addEventListener('input', () => updateTransform('SkewX', 'input'));
+        document.getElementById('rangeSkewY').addEventListener('input', () => updateTransform('SkewY', 'range'));
+        document.getElementById('inputSkewYNum').addEventListener('input', () => updateTransform('SkewY', 'input'));
+        
+        document.getElementById('imageCanvas').addEventListener('click', function(e) {
+            if (!loadedImage) return;
+            const canvas = this;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+            const ctx = canvas.getContext('2d');
+            const pixel = ctx.getImageData(x, y, 1, 1).data;
+            const r = pixel[0], g = pixel[1], b = pixel[2];
+            document.getElementById('colorPreview').style.backgroundColor = `rgb(${r},${g},${b})`;
+            document.getElementById('rgbValue').innerText = `RGB: (${r}, ${g}, ${b})`;
+            let advice = "Basiskleur";
+            if (r > 200 && g > 200 && b > 200) advice = "Voeg heel weinig grijs/blauw toe voor schaduw.";
+            else if (r > g && r > b) advice = "Mengadvies: Roodtint (gebruik Oker, Geroest Rood of Wit).";
+            else if (g > r && g > b) advice = "Mengadvies: Groentint (mengen met Geel en Blauw / Ombré).";
+            else if (b > r && b > g) advice = "Mengadvies: Blauwtint (mengen met Ultramarijn en Wit).";
+            else advice = "Neutrale tint / Aardetint (gebruik Umber, Sienna of Oker).";
+            document.getElementById('mixAdvice').innerText = advice;
+        });
+
+        window.saveCurrentAsProject = async function() {
+            if (!window.originalImageSrc) {
+                alert("Laad eerst een voorbeeld-ontwerp in!");
+                return;
+            }
+            showToast("Bezig met opslaan in Firestore...");
+            try {
+                const data = {
+                    title: document.getElementById('projectName').value,
+                    date: new Date().toLocaleDateString('nl-NL'),
+                    width: document.getElementById('canvasWidth').value,
+                    height: document.getElementById('canvasHeight').value,
+                    paintType: document.getElementById('paintType').value,
+                    surfaceType: document.getElementById('surfaceType').value,
+                    notes: document.getElementById('projectNotes').value,
+                    hours: document.getElementById('projectHours').value,
+                    originalImage: window.originalImageSrc,
+                    type: 'project'
+                };
+                await addDoc(collection(db, "schilder_projecten"), data);
+                updateCounters();
+                showToast("Opgeslagen als Lopend Project! ☁️");
+            } catch (err) {
+                console.error(err);
+                alert("Fout bij opslaan: " + err.message);
+            }
+        };
+
+        window.markCurrentAsFinished = async function() {
+            if (!window.originalImageSrc) {
+                alert("Laad eerst een voorbeeld-ontwerp in!");
+                return;
+            }
+            showToast("Bezig met voltooien...");
+            try {
+                const data = {
+                    title: document.getElementById('projectName').value,
+                    date: new Date().toLocaleDateString('nl-NL'),
+                    width: document.getElementById('canvasWidth').value,
+                    height: document.getElementById('canvasHeight').value,
+                    paintType: document.getElementById('paintType').value,
+                    surfaceType: document.getElementById('surfaceType').value,
+                    notes: document.getElementById('projectNotes').value,
+                    hours: document.getElementById('projectHours').value,
+                    originalImage: window.originalImageSrc,
+                    type: 'finished'
+                };
+                await addDoc(collection(db, "schilder_projecten"), data);
+                updateCounters();
+                showToast("Gefeliciteerd! Opgeslagen bij Afgewerkt Schilderij 🏆");
+            } catch (err) {
+                console.error(err);
+                alert("Fout bij opslaan: " + err.message);
+            }
+        };
+
+        async function updateCounters() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "schilder_projecten"));
+                let pCount = 0, fCount = 0;
+                querySnapshot.forEach((doc) => {
+                    const item = doc.data();
+                    if (item.type === 'finished') fCount++;
+                    else pCount++;
+                });
+                document.getElementById('countProjects').innerText = pCount;
+                document.getElementById('countFinished').innerText = fCount;
+                document.getElementById('badgeProjects').innerText = pCount;
+                document.getElementById('badgeFinished').innerText = fCount;
+            } catch (e) { 
+                console.error("Fout bij ophalen tellers:", e); 
+            }
+        }
+        updateCounters();
+
+        window.openProjectsGallery = async function() {
+            const listEl = document.getElementById('projectsList');
+            listEl.innerHTML = '<p class="text-slate-400 text-center py-4">Laden...</p>';
+            document.getElementById('projectsModal').classList.remove('hidden');
+            try {
+                const querySnapshot = await getDocs(collection(db, "schilder_projecten"));
+                listEl.innerHTML = '';
+                let count = 0;
+                querySnapshot.forEach((d) => {
+                    const item = d.data();
+                    if (item.type !== 'finished') {
+                        count++;
+                        const card = document.createElement('div');
+                        card.className = "bg-slate-900 border border-slate-700 rounded-lg p-3 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between";
+                        card.innerHTML = `
+                            <div class="flex items-center gap-3 overflow-hidden">
+                                <img src="${item.originalImage}" class="w-16 h-16 object-cover rounded border border-slate-700 shrink-0">
+                                <div class="overflow-hidden flex flex-col gap-0.5">
+                                    <h3 class="font-semibold text-sm text-slate-200 truncate">${item.title}</h3>
+                                    <p class="text-[11px] text-slate-400">📅 ${item.date} • 📏 ${item.width}x${item.height}cm</p>
+                                    <p class="text-[11px] text-indigo-400 font-medium">🖌️ ${item.paintType || 'Acrylverf'} op ${item.surfaceType || 'Doek'} (${item.hours || 0}u)</p>
+                                    ${item.notes ? `<p class="text-[11px] text-slate-300 italic truncate max-w-xs">📝 "${item.notes}"</p>` : ''}
+                                </div>
+                            </div>
+                            <div class="flex gap-1.5 self-end sm:self-center shrink-0">
+                                <button onclick="loadCloudItem('${d.id}')" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-1.5 rounded transition">Laad</button>
+                                <button onclick="deleteCloudItem('${d.id}', openProjectsGallery)" class="bg-red-600 hover:bg-red-500 text-white text-xs px-3 py-1.5 rounded transition">Wis</button>
+                            </div>
+                        `;
+                        listEl.appendChild(card);
+                    }
+                });
+                if (count === 0) listEl.innerHTML = '<p class="text-slate-400 text-center py-4">Geen lopende projecten gevonden.</p>';
+            } catch(err) {
+                console.error(err);
+                listEl.innerHTML = '<p class="text-red-400 text-center py-4">Fout bij laden.</p>';
+            }
+        };
+
+        window.openFinishedGallery = async function() {
+            const listEl = document.getElementById('finishedList');
+            listEl.innerHTML = '<p class="text-slate-400 text-center py-4">Laden...</p>';
+            document.getElementById('finishedModal').classList.remove('hidden');
+            try {
+                const querySnapshot = await getDocs(collection(db, "schilder_projecten"));
+                listEl.innerHTML = '';
+                let count = 0;
+                querySnapshot.forEach((d) => {
+                    const item = d.data();
+                    if (item.type === 'finished') {
+                        count++;
+                        const card = document.createElement('div');
+                        card.className = "bg-slate-900 border border-slate-700 rounded-lg p-3 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between";
+                        card.innerHTML = `
+                            <div class="flex items-center gap-3 overflow-hidden">
+                                <img src="${item.originalImage}" class="w-16 h-16 object-cover rounded border border-slate-700 shrink-0">
+                                <div class="overflow-hidden flex flex-col gap-0.5">
+                                    <h3 class="font-semibold text-sm text-slate-200 truncate">${item.title} 🏆</h3>
+                                    <p class="text-[11px] text-slate-400">📅 ${item.date} • 📏 ${item.width}x${item.height}cm</p>
+                                    <p class="text-[11px] text-amber-400 font-medium">🖌️ ${item.paintType || 'Acrylverf'} op ${item.surfaceType || 'Doek'} • Totaal: ${item.hours || 0} uur</p>
+                                    ${item.notes ? `<p class="text-[11px] text-slate-300 italic truncate max-w-xs">📝 "${item.notes}"</p>` : ''}
+                                </div>
+                            </div>
+                            <div class="flex gap-1.5 self-end sm:self-center shrink-0">
+                                <button onclick="loadCloudItem('${d.id}')" class="bg-amber-600 hover:bg-amber-500 text-white text-xs px-3 py-1.5 rounded transition">Laad</button>
+                                <button onclick="deleteCloudItem('${d.id}', openFinishedGallery)" class="bg-red-600 hover:bg-red-500 text-white text-xs px-3 py-1.5 rounded transition">Wis</button>
+                            </div>
+                        `;
+                        listEl.appendChild(card);
+                    }
+                });
+                if (count === 0) listEl.innerHTML = '<p class="text-slate-400 text-center py-4">Geen afgewerkte schilderijen gevonden.</p>';
+            } catch(err) {
+                console.error(err);
+                listEl.innerHTML = '<p class="text-red-400 text-center py-4">Fout bij laden.</p>';
+            }
+        };
+
+        window.loadCloudItem = async function(id) {
+            const docSnap = await getDoc(doc(db, "schilder_projecten", id));
+            if (!docSnap.exists()) return;
+            const item = docSnap.data();
+            document.getElementById('projectName').value = item.title;
+            document.getElementById('canvasWidth').value = item.width;
+            document.getElementById('canvasHeight').value = item.height;
+            if (item.paintType) document.getElementById('paintType').value = item.paintType;
+            if (item.surfaceType) document.getElementById('surfaceType').value = item.surfaceType;
+            if (item.notes) document.getElementById('projectNotes').value = item.notes;
+            if (item.hours) document.getElementById('projectHours').value = item.hours;
+            
+            if (item.originalImage) {
+                window.originalImageSrc = item.originalImage;
+                const img = new Image();
+                img.onload = function() {
+                    loadedImage = img;
+                    document.getElementById('placeholderText').style.display = 'none';
+                    document.getElementById('imageCanvas').classList.remove('hidden');
+                    redrawCanvas();
+                };
+                img.src = window.originalImageSrc;
+            }
+            closeModalByName('projectsModal');
+            closeModalByName('finishedModal');
+            showToast(`Geladen: "${item.title}"`);
+        };
+
+        window.deleteCloudItem = async function(id, refreshCallback) {
+            if (!confirm("Weet je zeker dat je dit wilt verwijderen?")) return;
+            await deleteDoc(doc(db, "schilder_projecten", id));
+            updateCounters();
+            refreshCallback();
+        };
+
+        window.closeModalByName = (id) => document.getElementById(id).classList.add('hidden');
+        window.toggleTheaterMode = () => document.body.classList.toggle('theater-mode');
+        
+        window.resetAdjustments = () => {
+            ['Opacity', 'Contrast', 'Brightness'].forEach(type => {
+                const defVal = 100;
+                document.getElementById(`range${type}`).value = defVal;
+                document.getElementById(`input${type}Num`).value = defVal;
+            });
+            document.getElementById('checkGrayscale').checked = false;
+            redrawCanvas();
+        };
+
+        window.resetTransform = () => {
+            document.getElementById('rangeRotate').value = 0;
+            document.getElementById('inputRotateNum').value = 0;
+            document.getElementById('rangeSkewX').value = 0;
+            document.getElementById('inputSkewXNum').value = 0;
+            document.getElementById('rangeSkewY').value = 0;
+            document.getElementById('inputSkewYNum').value = 0;
+            const container = document.getElementById('transformContainer');
+            container.style.transform = `rotate(0deg) skew(0deg, 0deg)`;
+        };
+    </script>
+</body>
+</html>
