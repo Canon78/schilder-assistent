@@ -149,28 +149,45 @@
                 </div>
             </div>
 
-            <!-- 4. Hoekcorrectie & Graden invoer -->
+            <!-- 4. Hoekcorrectie & Vervorming met Cijferinvoer -->
             <div class="flex flex-col gap-3 border-t border-slate-700 pt-3">
-                <div class="flex justify-between items-center">
-                    <label class="font-semibold text-sm text-slate-300">4. Hoekcorrectie (Beamer)</label>
-                    <div class="flex items-center gap-1">
-                        <input type="number" id="inputRotateNum" value="0" min="-180" max="180" class="w-16 bg-slate-900 border border-slate-700 rounded px-2 py-0.5 text-xs text-center font-mono text-indigo-400">
-                        <span class="text-xs text-slate-400">°</span>
+                <label class="font-semibold text-sm text-slate-300">4. Hoekcorrectie & Vervorming</label>
+                
+                <!-- Rotatie -->
+                <div class="flex flex-col gap-1">
+                    <div class="flex justify-between items-center text-xs text-slate-400">
+                        <span>Rotatie</span>
+                        <div class="flex items-center gap-1">
+                            <input type="number" id="inputRotateNum" value="0" min="-180" max="180" class="w-14 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-center font-mono text-indigo-400">
+                            <span>°</span>
+                        </div>
                     </div>
-                </div>
-                <div>
-                    <div class="flex justify-between text-xs text-slate-400"><span>Rotatie Schuifbalk</span><span id="valRotate">0°</span></div>
                     <input type="range" id="rangeRotate" min="-180" max="180" value="0" class="w-full accent-indigo-500">
                 </div>
-                <div>
-                    <div class="flex justify-between text-xs text-slate-400"><span>Horizontale Vervorming (Skew X)</span><span id="valSkewX">0</span></div>
+
+                <!-- Skew X (Horizontaal) -->
+                <div class="flex flex-col gap-1">
+                    <div class="flex justify-between items-center text-xs text-slate-400">
+                        <span>Horizontale Vervorming (Skew X)</span>
+                        <div class="flex items-center gap-1">
+                            <input type="number" id="inputSkewXNum" value="0" min="-50" max="50" class="w-14 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-center font-mono text-indigo-400">
+                        </div>
+                    </div>
                     <input type="range" id="rangeSkewX" min="-50" max="50" value="0" class="w-full accent-indigo-500">
                 </div>
-                <div>
-                    <div class="flex justify-between text-xs text-slate-400"><span>Verticale Vervorming (Skew Y)</span><span id="valSkewY">0</span></div>
+
+                <!-- Skew Y (Verticaal) -->
+                <div class="flex flex-col gap-1">
+                    <div class="flex justify-between items-center text-xs text-slate-400">
+                        <span>Verticale Vervorming (Skew Y)</span>
+                        <div class="flex items-center gap-1">
+                            <input type="number" id="inputSkewYNum" value="0" min="-50" max="50" class="w-14 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-center font-mono text-indigo-400">
+                        </div>
+                    </div>
                     <input type="range" id="rangeSkewY" min="-50" max="50" value="0" class="w-full accent-indigo-500">
                 </div>
-                <button onclick="resetTransform()" class="bg-slate-700 hover:bg-slate-600 text-xs py-1.5 rounded transition">Reset Hoekcorrectie</button>
+
+                <button onclick="resetTransform()" class="bg-slate-700 hover:bg-slate-600 text-xs py-1.5 rounded transition mt-1">Reset Correcties</button>
             </div>
 
             <!-- 5. Kleurmenging Assistent -->
@@ -342,31 +359,28 @@
             }
         }
 
-        function updateTransform(source = 'range') {
-            const rangeRotate = document.getElementById('rangeRotate');
-            const inputRotateNum = document.getElementById('inputRotateNum');
+        function updateTransform(type, source = 'range') {
+            const rangeEl = document.getElementById(`range${type}`);
+            const inputEl = document.getElementById(`input${type}Num`);
             
-            let rotateVal = 0;
+            let val = 0;
             if (source === 'input') {
-                rotateVal = parseInt(inputRotateNum.value) || 0;
-                rangeRotate.value = rotateVal;
+                val = parseInt(inputEl.value) || 0;
+                rangeEl.value = val;
             } else {
-                rotateVal = parseInt(rangeRotate.value) || 0;
-                inputRotateNum.value = rotateVal;
+                val = parseInt(rangeEl.value) || 0;
+                inputEl.value = val;
             }
 
-            const skewX = document.getElementById('rangeSkewX').value;
-            const skewY = document.getElementById('rangeSkewY').value;
-
-            document.getElementById('valRotate').innerText = rotateVal + '°';
-            document.getElementById('valSkewX').innerText = skewX;
-            document.getElementById('valSkewY').innerText = skewY;
+            const rotateVal = document.getElementById('rangeRotate').value;
+            const skewXVal = document.getElementById('rangeSkewX').value;
+            const skewYVal = document.getElementById('rangeSkewY').value;
 
             const container = document.getElementById('transformContainer');
-            container.style.transform = `rotate(${rotateVal}deg) skew(${skewX}deg, ${skewY}deg)`;
+            container.style.transform = `rotate(${rotateVal}deg) skew(${skewXVal}deg, ${skewYVal}deg)`;
         }
 
-        // Event Listeners
+        // Event Listeners voor filters & grid
         ['rangeOpacity', 'rangeContrast', 'rangeBrightness', 'checkGrayscale', 'checkGrid', 'gridDensity'].forEach(id => {
             document.getElementById(id).addEventListener('input', () => {
                 document.getElementById('valOpacity').innerText = document.getElementById('rangeOpacity').value + '%';
@@ -376,12 +390,15 @@
             });
         });
 
-        document.getElementById('rangeRotate').addEventListener('input', () => updateTransform('range'));
-        document.getElementById('inputRotateNum').addEventListener('input', () => updateTransform('input'));
+        // Event Listeners voor Rotatie en Skew (zowel range als getalvakjes)
+        document.getElementById('rangeRotate').addEventListener('input', () => updateTransform('Rotate', 'range'));
+        document.getElementById('inputRotateNum').addEventListener('input', () => updateTransform('Rotate', 'input'));
         
-        ['rangeSkewX', 'rangeSkewY'].forEach(id => {
-            document.getElementById(id).addEventListener('input', () => updateTransform('range'));
-        });
+        document.getElementById('rangeSkewX').addEventListener('input', () => updateTransform('SkewX', 'range'));
+        document.getElementById('inputSkewXNum').addEventListener('input', () => updateTransform('SkewX', 'input'));
+
+        document.getElementById('rangeSkewY').addEventListener('input', () => updateTransform('SkewY', 'range'));
+        document.getElementById('inputSkewYNum').addEventListener('input', () => updateTransform('SkewY', 'input'));
 
         // Kleurpictogram / Kleurmenging bij klik op afbeelding
         document.getElementById('imageCanvas').addEventListener('click', function(e) {
@@ -489,7 +506,9 @@
                 document.getElementById('countFinished').innerText = fCount;
                 document.getElementById('badgeProjects').innerText = pCount;
                 document.getElementById('badgeFinished').innerText = fCount;
-            } catch (e) { console.error(e); }
+            } catch (e) { 
+                console.error("Fout bij ophalen tellers (controleer je Firestore beveiligingsregels!):", e); 
+            }
         }
         updateCounters();
 
@@ -524,9 +543,10 @@
                         listEl.appendChild(card);
                     }
                 });
-                if (count === 0) listEl.innerHTML = '<p class="text-slate-400 text-center col-span-2 py-4">Geen lopende projecten.</p>';
+                if (count === 0) listEl.innerHTML = '<p class="text-slate-400 text-center col-span-2 py-4">Geen lopende projecten gevonden.</p>';
             } catch(err) {
-                listEl.innerHTML = '<p class="text-red-400 text-center col-span-2 py-4">Fout bij laden.</p>';
+                console.error(err);
+                listEl.innerHTML = '<p class="text-red-400 text-center col-span-2 py-4">Fout bij laden. Controleer of Firestore leesrechten heeft.</p>';
             }
         };
 
@@ -561,9 +581,10 @@
                         listEl.appendChild(card);
                     }
                 });
-                if (count === 0) listEl.innerHTML = '<p class="text-slate-400 text-center col-span-2 py-4">Geen afgewerkte schilderijen.</p>';
+                if (count === 0) listEl.innerHTML = '<p class="text-slate-400 text-center col-span-2 py-4">Geen afgewerkte schilderijen gevonden.</p>';
             } catch(err) {
-                listEl.innerHTML = '<p class="text-red-400 text-center col-span-2 py-4">Fout bij laden.</p>';
+                console.error(err);
+                listEl.innerHTML = '<p class="text-red-400 text-center col-span-2 py-4">Fout bij laden. Controleer of Firestore leesrechten heeft.</p>';
             }
         };
 
@@ -610,8 +631,11 @@
             document.getElementById('rangeRotate').value = 0;
             document.getElementById('inputRotateNum').value = 0;
             document.getElementById('rangeSkewX').value = 0;
+            document.getElementById('inputSkewXNum').value = 0;
             document.getElementById('rangeSkewY').value = 0;
-            updateTransform('range');
+            document.getElementById('inputSkewYNum').value = 0;
+            const container = document.getElementById('transformContainer');
+            container.style.transform = `rotate(0deg) skew(0deg, 0deg)`;
         };
     </script>
 </body>
