@@ -216,7 +216,6 @@
         import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getStorage, ref, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
-        // Jouw geverifieerde Firebase Configuratie
         const firebaseConfig = {
             apiKey: "AIzaSyBFnjIMIPypXPfdfC6VPgJ7QHkXfK6GwPE",
             authDomain: "schilder-assistent.firebaseapp.com",
@@ -233,6 +232,7 @@
 
         window.originalImageSrc = null;
         window.finishedImageSrc = null;
+        let loadedImage = null;
 
         window.showToast = function(message) {
             const toastText = document.getElementById('toastText');
@@ -246,14 +246,20 @@
             }, 3000);
         }
 
-        // Event listeners voor bestanden
         document.getElementById('imageUpload').addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
             reader.onload = (event) => {
                 window.originalImageSrc = event.target.result;
-                loadAndDrawImage(window.originalImageSrc);
+                const img = new Image();
+                img.onload = function() {
+                    loadedImage = img;
+                    document.getElementById('placeholderText').style.display = 'none';
+                    document.getElementById('imageCanvas').classList.remove('hidden');
+                    redrawCanvas();
+                };
+                img.src = window.originalImageSrc;
             };
             reader.readAsDataURL(file);
         });
@@ -270,26 +276,124 @@
             reader.readAsDataURL(file);
         });
 
-        function loadAndDrawImage(src) {
-            const img = new Image();
-            img.onload = function() {
-                document.getElementById('placeholderText').style.display = 'none';
-                const canvas = document.getElementById('imageCanvas');
-                const gridCanvas = document.getElementById('gridCanvas');
-                canvas.classList.remove('hidden');
-                
-                canvas.width = img.width;
-                canvas.height = img.height;
-                gridCanvas.width = img.width;
-                gridCanvas.height = img.height;
+        function redrawCanvas() {
+            if (!loadedImage) return;
+            const canvas = document.getElementById('imageCanvas');
+            const ctx = canvas.getContext('2d');
 
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0);
-            }
-            img.src = src;
+            canvas.width = loadedImage.width;
+            canvas.height = loadedImage.height;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Filters toepassen
+            const opacity = document.getElementById('rangeOpacity').value / 100;
+            const contrast = document.getElementById('rangeContrast').value;
+            const brightness = document.getElementById('rangeBrightness').value;
+            const isGrayscale = document.getElementById('checkGrayscale').checked;
+
+            ctx.globalAlpha = opacity;
+            ctx.filter = `contrast(${contrast}%) brightness(${brightness}%) ${isGrayscale ? 'grayscale(100% )' : ''}`;
+            
+            ctx.drawImage(loadedImage, 0, 0);
+            ctx.filter = 'none';
+            ctx.globalAlpha = 1.0;
+
+            drawGrid();
         }
 
-        // Hulpfunctie om afbeeldingen naar Firebase Storage te uploaden
+        function drawGrid() {
+            const gridCanvas = document.getElementById('gridCanvas');
+            const showGrid = document.getElementById('checkGrid').checked;
+            
+            if (!showGrid || !loadedImage) {
+                gridCanvas.classList.add('hidden');
+                return;
+            }
+
+            gridCanvas.classList.remove('hidden');
+            gridCanvas.width = loadedImage.width;
+            gridCanvas.height = loadedImage.height;
+            const ctx = gridCanvas.getContext('2d');
+            ctx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
+
+            const divisions = parseInt(document.getElementById('gridDensity').value);
+            const stepX = gridCanvas.width / divisions;
+            const stepY = gridCanvas.height / divisions;
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.lineWidth = Math.max(1, gridCanvas.width / 400);
+
+            for (let i = 1; i < divisions; i++) {
+                // Verticale lijnen
+                ctx.beginPath();
+                ctx.moveTo(i * stepX, 0);
+                ctx.lineTo(i * stepX, gridCanvas.height);
+                ctx.stroke();
+
+                // Horizontale lijnen
+                ctx.beginPath();
+                ctx.moveTo(0, i * stepY);
+                ctx.lineTo(gridCanvas.width, i * stepY);
+                ctx.stroke();
+            }
+        }
+
+        function updateTransform() {
+            const rotate = document.getElementById('rangeRotate').value;
+            const skewX = document.getElementById('rangeSkewX').value;
+            const skewY = document.getElementById('rangeSkewY').value;
+
+            document.getElementById('valRotate').innerText = rotate + '°';
+            document.getElementById('valSkewX').innerText = skewX;
+            document.getElementById('valSkewY').innerText = skewY;
+
+            const container = document.getElementById('transformContainer');
+            container.style.transform = `rotate(${rotate}deg) skew(${skewX}deg, ${skewY}deg)`;
+        }
+
+        // Event Listeners voor schuifjes en knoppen
+        ['rangeOpacity', 'rangeContrast', 'rangeBrightness', 'checkGrayscale', 'checkGrid', 'gridDensity'].forEach(id => {
+            document.getElementById(id).addEventListener('input', () => {
+                document.getElementById('valOpacity').innerText = document.getElementById('rangeOpacity').value + '%';
+                document.getElementById('valContrast').innerText = document.getElementById('rangeContrast').value + '%';
+                document.getElementById('valBrightness').innerText = document.getElementById('rangeBrightness').value + '%';
+                redrawCanvas();
+            });
+        });
+
+        ['rangeRotate', 'rangeSkewX', 'rangeSkewY'].forEach(id => {
+            document.getElementById(id).addEventListener('input', updateTransform);
+        });
+
+        // Kleurpictogram / Kleurmenging bij klik op afbeelding
+        document.getElementById('imageCanvas').addEventListener('click', function(e) {
+            if (!loadedImage) return;
+            const canvas = this;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+
+            const ctx = canvas.getContext('2d');
+            const pixel = ctx.getImageData(x, y, 1, 1).data;
+            const r = pixel[0], g = pixel[1], b = pixel[2];
+
+            document.getElementById('colorPreview').style.backgroundColor = `rgb(${r},${g},${b})`;
+            document.getElementById('rgbValue').innerText = `RGB: (${r}, ${g}, ${b})`;
+
+            // Eenvoudig mengadvies genereren
+            let advice = "Basiskleur";
+            if (r > 200 && g > 200 && b > 200) advice = "Voeg heel weinig grijs/blauw toe voor schaduw.";
+            else if (r > g && r > b) advice = "Mengadvies: Roodtint (gebruik Oker, Geroest Rood of Wit).";
+            else if (g > r && g > b) advice = "Mengadvies: Groentint (mengen met Geel en Blauw / Ombré).";
+            else if (b > r && b > g) advice = "Mengadvies: Blauwtint (mengen met Ultramarijn en Wit).";
+            else advice = "Neutrale tint / Aardetint (gebruik Umber, Sienna of Oker).";
+
+            document.getElementById('mixAdvice').innerText = advice;
+        });
+
         async function uploadBase64ToStorage(base64Data, path) {
             if (!base64Data || !base64Data.startsWith('data:')) return base64Data;
             const storageRef = ref(storage, path);
@@ -448,7 +552,14 @@
             
             if (item.originalImage) {
                 window.originalImageSrc = item.originalImage;
-                loadAndDrawImage(window.originalImageSrc);
+                const img = new Image();
+                img.onload = function() {
+                    loadedImage = img;
+                    document.getElementById('placeholderText').style.display = 'none';
+                    document.getElementById('imageCanvas').classList.remove('hidden');
+                    redrawCanvas();
+                };
+                img.src = window.originalImageSrc;
             }
             if (item.finishedImage) {
                 window.finishedImageSrc = item.finishedImage;
@@ -474,6 +585,7 @@
             document.getElementById('rangeRotate').value = 0;
             document.getElementById('rangeSkewX').value = 0;
             document.getElementById('rangeSkewY').value = 0;
+            updateTransform();
         };
     </script>
 </body>
