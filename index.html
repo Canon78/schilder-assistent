@@ -157,10 +157,17 @@
                     <input type="range" id="rangeBrightness" min="50" max="200" value="100" class="w-full accent-indigo-500">
                 </div>
 
-                <div class="flex items-center gap-2">
-                    <input type="checkbox" id="checkGrayscale" class="accent-indigo-500 w-4 h-4">
-                    <label for="checkGrayscale" class="text-sm">Zwart-wit / Schetsmodus</label>
+                <div class="flex flex-col gap-2 pt-1">
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="checkGrayscale" class="accent-indigo-500 w-4 h-4">
+                        <label for="checkGrayscale" class="text-sm">Zwart-wit / Schetsmodus</label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="checkInvert" class="accent-indigo-500 w-4 h-4">
+                        <label for="checkInvert" class="text-sm">Negatief / Kleuren omkeren</label>
+                    </div>
                 </div>
+
                 <div class="flex flex-col gap-2 pt-2 border-t border-slate-700">
                     <div class="flex items-center gap-2">
                         <input type="checkbox" id="checkGrid" class="accent-indigo-500 w-4 h-4">
@@ -177,10 +184,16 @@
                 </div>
                 <button onclick="resetAdjustments()" class="bg-slate-700 hover:bg-slate-600 text-xs py-1.5 rounded transition mt-1">Reset Aanpassingen</button>
             </div>
-            <!-- 4. Hoekcorrectie & Vervorming met Cijferinvoer -->
+            <!-- 4. Hoekcorrectie & Spiegels / Vervorming -->
             <div class="flex flex-col gap-3 border-t border-slate-700 pt-3">
-                <label class="font-semibold text-sm text-slate-300">4. Hoekcorrectie & Vervorming</label>
+                <label class="font-semibold text-sm text-slate-300">4. Hoekcorrectie & Spiegelen</label>
                 
+                <!-- Spiegel opties -->
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="toggleMirror('H')" id="btnMirrorH" class="bg-slate-900 border border-slate-700 hover:border-indigo-500 text-xs py-2 rounded text-slate-300 transition">↔️️ Spiegel Horizontaal</button>
+                    <button onclick="toggleMirror('V')" id="btnMirrorV" class="bg-slate-900 border border-slate-700 hover:border-indigo-500 text-xs py-2 rounded text-slate-300 transition">↕️ Spiegel Verticaal</button>
+                </div>
+
                 <!-- Rotatie -->
                 <div class="flex flex-col gap-1">
                     <div class="flex justify-between items-center text-xs text-slate-400">
@@ -273,6 +286,8 @@
 
         window.originalImageSrc = null;
         let loadedImage = null;
+        let mirrorH = false;
+        let mirrorV = false;
         
         window.showToast = function(message) {
             const toastText = document.getElementById('toastText');
@@ -330,7 +345,6 @@
             const canvas = document.getElementById('imageCanvas');
             const ctx = canvas.getContext('2d');
 
-            // Bepaal de gewenste verhouding op basis van de ingevoerde doekgrootte (cm)
             const cWidth = parseFloat(document.getElementById('canvasWidth').value) || 1;
             const cHeight = parseFloat(document.getElementById('canvasHeight').value) || 1;
             const targetAspect = cWidth / cHeight;
@@ -340,7 +354,6 @@
             let renderWidth, renderHeight;
             let dx = 0, dy = 0;
 
-            // Vaste basisresolutie voor het canvas om scherp te blijven
             const baseScale = 800;
             if (targetAspect >= 1) {
                 renderWidth = baseScale;
@@ -354,11 +367,9 @@
             canvas.height = renderHeight;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Vul het canvas eerst met zwart (voor eventuele passende restruimte / letterboxing)
             ctx.fillStyle = '#000000';
             ctx.fillRect(0, 0, renderWidth, renderHeight);
 
-            // Bereken de positie zodat de gehele foto gecentreerd blijft en volledig past ('contain')
             let drawW = renderWidth;
             let drawH = renderHeight;
 
@@ -374,9 +385,11 @@
             const contrast = document.getElementById('rangeContrast').value;
             const brightness = document.getElementById('rangeBrightness').value;
             const isGrayscale = document.getElementById('checkGrayscale').checked;
+            const isInvert = document.getElementById('checkInvert').checked;
 
             ctx.globalAlpha = opacity;
-            ctx.filter = `contrast(${contrast}%) brightness(${brightness}%) ${isGrayscale ? 'grayscale(100%)' : ''}`;
+            let filterStr = `contrast(${contrast}%) brightness(${brightness}%) ${isGrayscale ? 'grayscale(100%)' : ''} ${isInvert ? 'invert(100%)' : ''}`;
+            ctx.filter = filterStr;
             
             ctx.drawImage(loadedImage, 0, 0, loadedImage.width, loadedImage.height, dx, dy, drawW, drawH);
             ctx.filter = 'none';
@@ -429,6 +442,33 @@
             redrawCanvas();
         }
 
+        window.toggleMirror = function(dir) {
+            if (dir === 'H') {
+                mirrorH = !mirrorH;
+                const btn = document.getElementById('btnMirrorH');
+                btn.classList.toggle('bg-indigo-600', mirrorH);
+                btn.classList.toggle('text-white', mirrorH);
+            } else if (dir === 'V') {
+                mirrorV = !mirrorV;
+                const btn = document.getElementById('btnMirrorV');
+                btn.classList.toggle('bg-indigo-600', mirrorV);
+                btn.classList.toggle('text-white', mirrorV);
+            }
+            updateTransformContainer();
+        }
+
+        function updateTransformContainer() {
+            const rotateVal = document.getElementById('rangeRotate').value;
+            const skewXVal = document.getElementById('rangeSkewX').value;
+            const skewYVal = document.getElementById('rangeSkewY').value;
+            const container = document.getElementById('transformContainer');
+            
+            let scaleXStr = mirrorH ? '-1' : '1';
+            let scaleYStr = mirrorV ? '-1' : '1';
+
+            container.style.transform = `rotate(${rotateVal}deg) skew(${skewXVal}deg, ${skewYVal}deg) scale(${scaleXStr}, ${scaleYStr})`;
+        }
+
         function updateTransform(type, source = 'range') {
             const rangeEl = document.getElementById(`range${type}`);
             const inputEl = document.getElementById(`input${type}Num`);
@@ -440,27 +480,21 @@
                 val = parseInt(rangeEl.value) || 0;
                 inputEl.value = val;
             }
-            const rotateVal = document.getElementById('rangeRotate').value;
-            const skewXVal = document.getElementById('rangeSkewX').value;
-            const skewYVal = document.getElementById('rangeSkewY').value;
-            const container = document.getElementById('transformContainer');
-            container.style.transform = `rotate(${rotateVal}deg) skew(${skewXVal}deg, ${skewYVal}deg)`;
+            updateTransformContainer();
         }
         
-        // Koppeling event listeners
         ['Opacity', 'Contrast', 'Brightness'].forEach(type => {
             document.getElementById(`range${type}`).addEventListener('input', () => updateAdjustment(type, 'range'));
             document.getElementById(`input${type}Num`).addEventListener('input', () => updateAdjustment(type, 'input'));
         });
 
-        // Event listeners voor doekgrootte zodat het beeld direct mee-verandert
         ['canvasWidth', 'canvasHeight'].forEach(id => {
             document.getElementById(id).addEventListener('input', () => {
                 redrawCanvas();
             });
         });
 
-        ['checkGrayscale', 'checkGrid', 'gridDensity'].forEach(id => {
+        ['checkGrayscale', 'checkInvert', 'checkGrid', 'gridDensity'].forEach(id => {
             document.getElementById(id).addEventListener('input', () => {
                 redrawCanvas();
             });
@@ -693,18 +727,22 @@
                 document.getElementById(`input${type}Num`).value = defVal;
             });
             document.getElementById('checkGrayscale').checked = false;
+            document.getElementById('checkInvert').checked = false;
             redrawCanvas();
         };
 
         window.resetTransform = () => {
+            mirrorH = false;
+            mirrorV = false;
+            document.getElementById('btnMirrorH').classList.remove('bg-indigo-600', 'text-white');
+            document.getElementById('btnMirrorV').classList.remove('bg-indigo-600', 'text-white');
             document.getElementById('rangeRotate').value = 0;
             document.getElementById('inputRotateNum').value = 0;
             document.getElementById('rangeSkewX').value = 0;
             document.getElementById('inputSkewXNum').value = 0;
             document.getElementById('rangeSkewY').value = 0;
             document.getElementById('inputSkewYNum').value = 0;
-            const container = document.getElementById('transformContainer');
-            container.style.transform = `rotate(0deg) skew(0deg, 0deg)`;
+            updateTransformContainer();
         };
     </script>
 </body>
