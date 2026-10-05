@@ -102,9 +102,21 @@
                     <label for="checkGrayscale" class="text-sm">Zwart-wit / Schetsmodus</label>
                 </div>
 
-                <div class="flex items-center gap-2">
-                    <input type="checkbox" id="checkGrid" class="accent-indigo-500 w-4 h-4">
-                    <label for="checkGrid" class="text-sm">Toon Hulplijn Raster (3x3)</label>
+                <!-- Raster Opties -->
+                <div class="flex flex-col gap-2 pt-2 border-t border-slate-700">
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="checkGrid" class="accent-indigo-500 w-4 h-4">
+                        <label for="checkGrid" class="text-sm font-semibold">Toon Hulplijn Raster</label>
+                    </div>
+                    <div class="flex items-center gap-2 pl-6">
+                        <span class="text-xs text-slate-400">Dichtheid (vakjes):</span>
+                        <select id="gridDensity" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200">
+                            <option value="3">3 x 3 (Standaard)</option>
+                            <option value="5" selected>5 x 5 (Gedetailleerd)</option>
+                            <option value="10">10 x 10 (Fijn)</option>
+                            <option value="20">20 x 20 (Zeer fijn)</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -162,7 +174,7 @@
             <!-- Container voor transformaties en raster -->
             <div id="transformContainer" class="relative transition-transform duration-75 origin-center flex items-center justify-center">
                 <canvas id="imageCanvas" class="max-w-full max-h-[75vh] object-contain shadow-2xl cursor-crosshair hidden"></canvas>
-                <!-- Dynamisch raster canvas overlay die exact de afmetingen van het canvas volgt -->
+                <!-- Dynamisch raster canvas overlay -->
                 <canvas id="gridCanvas" class="absolute inset-0 w-full h-full pointer-events-none hidden"></canvas>
             </div>
         </section>
@@ -185,6 +197,7 @@
         const rangeBrightness = document.getElementById('rangeBrightness');
         const checkGrayscale = document.getElementById('checkGrayscale');
         const checkGrid = document.getElementById('checkGrid');
+        const gridDensity = document.getElementById('gridDensity');
 
         const rangeRotate = document.getElementById('rangeRotate');
         const rangeSkewX = document.getElementById('rangeSkewX');
@@ -258,23 +271,23 @@
             document.getElementById('valBrightness').innerText = rangeBrightness.value + '%';
         }
 
-        // Hulplijn raster tekenen (3x3 Regel van Derden)
+        // Hulplijn raster tekenen op basis van gekozen dichtheid
         function drawGridLines() {
             gridCtx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
-            gridCtx.strokeStyle = 'rgba(99, 102, 241, 0.7)';
-            gridCtx.lineWidth = Math.max(2, gridCanvas.width / 400);
+            gridCtx.strokeStyle = 'rgba(99, 102, 241, 0.6)';
+            gridCtx.lineWidth = Math.max(1, gridCanvas.width / 600);
 
-            const cols = 3, rows = 3;
-            const stepX = gridCanvas.width / cols;
-            const stepY = gridCanvas.height / rows;
+            const count = parseInt(gridDensity.value) || 5;
+            const stepX = gridCanvas.width / count;
+            const stepY = gridCanvas.height / count;
 
-            for (let i = 1; i < cols; i++) {
+            for (let i = 1; i < count; i++) {
                 gridCtx.beginPath();
                 gridCtx.moveTo(i * stepX, 0);
                 gridCtx.lineTo(i * stepX, gridCanvas.height);
                 gridCtx.stroke();
             }
-            for (let j = 1; j < rows; j++) {
+            for (let j = 1; j < count; j++) {
                 gridCtx.beginPath();
                 gridCtx.moveTo(0, j * stepY);
                 gridCtx.lineTo(gridCanvas.width, j * stepY);
@@ -288,6 +301,12 @@
                 drawGridLines();
             } else {
                 gridCanvas.classList.add('hidden');
+            }
+        });
+
+        gridDensity.addEventListener('change', () => {
+            if (checkGrid.checked && !imageCanvas.classList.contains('hidden')) {
+                drawGridLines();
             }
         });
 
@@ -389,6 +408,7 @@
                 brightness: rangeBrightness.value,
                 grayscale: checkGrayscale.checked,
                 grid: checkGrid.checked,
+                gridDensity: gridDensity.value,
                 rotate: rangeRotate.value,
                 skewX: rangeSkewX.value,
                 skewY: rangeSkewY.value,
@@ -422,6 +442,7 @@
                     rangeBrightness.value = data.brightness || 100;
                     checkGrayscale.checked = !!data.grayscale;
                     checkGrid.checked = !!data.grid;
+                    if (data.gridDensity) gridDensity.value = data.gridDensity;
                     rangeRotate.value = data.rotate || 0;
                     rangeSkewX.value = data.skewX || 0;
                     rangeSkewY.value = data.skewY || 0;
