@@ -50,4 +50,547 @@
             </div>
         </div>
     </div>
-    <!-- Melding banner (Toast)
+    <!-- Melding banner (Toast) -->
+    <div id="toastMessage" class="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-2xl font-medium text-sm transition-all duration-300 transform translate-y-20 opacity-0 pointer-events-none flex items-center gap-2">
+        <span>✓</span> <span id="toastText">Opgeslagen!</span>
+    </div>
+    <!-- Header -->
+    <header class="bg-slate-800 border-b border-slate-700 p-4 flex flex-wrap justify-between items-center gap-2">
+        <h1 class="text-xl font-bold flex items-center gap-2">🎨 Schilder & Projectie Assistent (Cloud)</h1>
+        <div class="flex flex-wrap gap-2">
+            <button onclick="openProjectsGallery()" class="bg-indigo-600 hover:bg-indigo-500 px-3 py-2 rounded text-sm font-semibold transition flex items-center gap-1.5 shadow">
+                📁 Lopende Projecten (<span id="badgeProjects">0</span>)
+            </button>
+            <button onclick="openFinishedGallery()" class="bg-amber-600 hover:bg-amber-500 px-3 py-2 rounded text-sm font-semibold transition flex items-center gap-1.5 shadow">
+                🏆 Afgewerkte Schilderijen (<span id="badgeFinished">0</span>)
+            </button>
+            <button onclick="toggleTheaterMode()" class="bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded text-sm font-semibold transition">🎬 Beamermodus</button>
+        </div>
+    </header>
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col md:flex-row p-4 gap-4 overflow-hidden">
+        
+        <!-- Sidebar / Bedieningspaneel -->
+        <aside id="control-panel" class="w-full md:w-96 bg-slate-800 p-4 rounded-xl border border-slate-700 flex flex-col gap-4 overflow-y-auto max-h-[calc(100vh-120px)]">
+            
+            <!-- Project Naam -->
+            <div class="flex flex-col gap-1">
+                <label class="font-semibold text-xs text-slate-400">Naam Schilderij / Project</label>
+                <input type="text" id="projectName" value="Mijn Schilderij" class="bg-slate-900 border border-slate-700 rounded p-2 text-sm text-slate-200 font-semibold focus:border-indigo-500 outline-none">
+            </div>
+            <!-- 1. Afbeelding uploaden -->
+            <div class="flex flex-col gap-2 border-t border-slate-700 pt-3">
+                <label class="font-semibold text-sm text-slate-300">1. Voorbeeld / Ontwerp Inladen</label>
+                <input type="file" id="imageUpload" accept="image/*" class="file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-500 file:text-white hover:file:bg-indigo-600 text-sm cursor-pointer">
+            </div>
+            <!-- Actieknop Lopend Project Opslaan -->
+            <div class="flex gap-2">
+                <button onclick="saveCurrentAsProject()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-xs py-2.5 rounded-lg font-semibold transition shadow flex items-center justify-center gap-1">
+                    ☁️ Opslaan in Cloud (Lopend)
+                </button>
+            </div>
+            <!-- 2. Doekgrootte -->
+            <div class="flex flex-col gap-2 border-t border-slate-700 pt-3">
+                <label class="font-semibold text-sm text-slate-300">2. Doekgrootte (cm)</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <span class="text-xs text-slate-400">Breedte</span>
+                        <input type="number" id="canvasWidth" value="80" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm">
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-400">Hoogte</span>
+                        <input type="number" id="canvasHeight" value="60" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm">
+                    </div>
+                </div>
+            </div>
+            <!-- 3. Aanpassingen & Filters -->
+            <div class="flex flex-col gap-3 border-t border-slate-700 pt-3">
+                <label class="font-semibold text-sm text-slate-300">3. Ontwerp Aanpassen</label>
+                <div>
+                    <div class="flex justify-between text-xs text-slate-400"><span>Transparantie</span><span id="valOpacity">100%</span></div>
+                    <input type="range" id="rangeOpacity" min="10" max="100" value="100" class="w-full accent-indigo-500">
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs text-slate-400"><span>Contrast</span><span id="valContrast">100%</span></div>
+                    <input type="range" id="rangeContrast" min="50" max="200" value="100" class="w-full accent-indigo-500">
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs text-slate-400"><span>Helderheid</span><span id="valBrightness">100%</span></div>
+                    <input type="range" id="rangeBrightness" min="50" max="200" value="100" class="w-full accent-indigo-500">
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="checkGrayscale" class="accent-indigo-500 w-4 h-4">
+                    <label for="checkGrayscale" class="text-sm">Zwart-wit / Schetsmodus</label>
+                </div>
+                <div class="flex flex-col gap-2 pt-2 border-t border-slate-700">
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="checkGrid" class="accent-indigo-500 w-4 h-4">
+                        <label for="checkGrid" class="text-sm font-semibold">Toon Hulplijn Raster</label>
+                    </div>
+                    <div class="flex items-center gap-2 pl-6">
+                        <span class="text-xs text-slate-400">Dichtheid (vakjes):</span>
+                        <select id="gridDensity" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200">
+                            <option value="3">3 x 3 (Standaard)</option>
+                            <option value="5" selected>5 x 5 (Gedetailleerd)</option>
+                            <option value="10">10 x 10 (Fijn)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <!-- 4. Hoekcorrectie & Vervorming met Cijferinvoer -->
+            <div class="flex flex-col gap-3 border-t border-slate-700 pt-3">
+                <label class="font-semibold text-sm text-slate-300">4. Hoekcorrectie & Vervorming</label>
+                
+                <!-- Rotatie -->
+                <div class="flex flex-col gap-1">
+                    <div class="flex justify-between items-center text-xs text-slate-400">
+                        <span>Rotatie</span>
+                        <div class="flex items-center gap-1">
+                            <input type="number" id="inputRotateNum" value="0" min="-180" max="180" class="w-14 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-center font-mono text-indigo-400">
+                            <span>°</span>
+                        </div>
+                    </div>
+                    <input type="range" id="rangeRotate" min="-180" max="180" value="0" class="w-full accent-indigo-500">
+                </div>
+                <!-- Skew X (Horizontaal) -->
+                <div class="flex flex-col gap-1">
+                    <div class="flex justify-between items-center text-xs text-slate-400">
+                        <span>Horizontale Vervorming (Skew X)</span>
+                        <div class="flex items-center gap-1">
+                            <input type="number" id="inputSkewXNum" value="0" min="-50" max="50" class="w-14 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-center font-mono text-indigo-400">
+                        </div>
+                    </div>
+                    <input type="range" id="rangeSkewX" min="-50" max="50" value="0" class="w-full accent-indigo-500">
+                </div>
+                <!-- Skew Y (Verticaal) -->
+                <div class="flex flex-col gap-1">
+                    <div class="flex justify-between items-center text-xs text-slate-400">
+                        <span>Verticale Vervorming (Skew Y)</span>
+                        <div class="flex items-center gap-1">
+                            <input type="number" id="inputSkewYNum" value="0" min="-50" max="50" class="w-14 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-center font-mono text-indigo-400">
+                        </div>
+                    </div>
+                    <input type="range" id="rangeSkewY" min="-50" max="50" value="0" class="w-full accent-indigo-500">
+                </div>
+                <button onclick="resetTransform()" class="bg-slate-700 hover:bg-slate-600 text-xs py-1.5 rounded transition mt-1">Reset Correcties</button>
+            </div>
+            <!-- 5. Kleurmenging Assistent -->
+            <div class="flex flex-col gap-2 border-t border-slate-700 pt-3">
+                <label class="font-semibold text-sm text-slate-300">5. Kleurmenging Assistent</label>
+                <div id="colorInfo" class="bg-slate-900 p-3 rounded border border-slate-700 flex items-center gap-3">
+                    <div id="colorPreview" class="w-10 h-10 rounded border border-slate-600 bg-slate-800 shrink-0"></div>
+                    <div class="text-xs flex flex-col gap-1">
+                        <span id="rgbValue" class="font-mono">RGB: -</span>
+                        <span id="mixAdvice" class="text-slate-300">Mengadvies: Klik op afbeelding</span>
+                    </div>
+                </div>
+            </div>
+            <!-- 6. Afgewerkt Schilderij Opslaan -->
+            <div class="flex flex-col gap-2 border-t border-slate-700 pt-3">
+                <label class="font-semibold text-sm text-slate-300">6. Klaar met schilderen?</label>
+                <input type="file" id="finishedPaintingUpload" accept="image/*" class="file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-600 file:text-white hover:file:bg-amber-700 text-xs cursor-pointer">
+                
+                <div id="finishedContainer" class="hidden mt-2 relative cursor-pointer group" onclick="openModal()">
+                    <img id="finishedPreviewImg" class="w-full h-32 object-cover rounded border border-slate-600 group-hover:opacity-90 transition" alt="Voltooid schilderij">
+                </div>
+                <button onclick="saveCurrentAsFinished()" class="mt-2 w-full bg-amber-600 hover:bg-amber-500 text-white text-xs py-2.5 rounded-lg font-semibold transition shadow flex items-center justify-center gap-1">
+                    🏆 Opslaan in Cloud (Afgewerkt)
+                </button>
+            </div>
+        </aside>
+        <!-- Preview / Projectie Scherm -->
+        <section id="projection-area" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl relative flex items-center justify-center overflow-hidden">
+            <div id="placeholderText" class="text-slate-500 text-center p-6">
+                <p class="text-lg font-medium">Nog geen ontwerp geladen</p>
+                <p class="text-sm">Upload een foto via het paneel links om te beginnen.</p>
+            </div>
+            
+            <div id="transformContainer" class="relative transition-transform duration-75 origin-center flex items-center justify-center">
+                <canvas id="imageCanvas" class="max-w-full max-h-[75vh] object-contain shadow-2xl cursor-crosshair hidden"></canvas>
+                <canvas id="gridCanvas" class="absolute inset-0 w-full h-full pointer-events-none hidden"></canvas>
+            </div>
+        </section>
+    </main>
+    <!-- JavaScript Logica & Gekoppelde Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyBFnjIMIPypXPfdfC6VPgJ7QHkXfK6GwPE",
+            authDomain: "schilder-assistent.firebaseapp.com",
+            projectId: "schilder-assistent",
+            storageBucket: "schilder-assistent.firebasestorage.app",
+            messagingSenderId: "567897199846",
+            appId: "1:567897199846:web:f2c222d494fd6849d21727",
+            measurementId: "G-LL6CKSQPPK"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.originalImageSrc = null;
+        window.finishedImageSrc = null;
+        let loadedImage = null;
+        
+        window.showToast = function(message) {
+            const toastText = document.getElementById('toastText');
+            const toastMessage = document.getElementById('toastMessage');
+            toastText.innerText = message;
+            toastMessage.classList.remove('translate-y-20', 'opacity-0');
+            toastMessage.classList.add('translate-y-0', 'opacity-100');
+            setTimeout(() => {
+                toastMessage.classList.remove('translate-y-0', 'opacity-100');
+                toastMessage.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // Hulpfunctie om afbeeldingen automatisch te comprimeren tot ze onder de database-limiet vallen
+        function compressImage(file, maxWidth = 800, quality = 0.7) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        if (width > maxWidth) {
+                            height = Math.round((height * maxWidth) / width);
+                            width = maxWidth;
+                        }
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL('image/jpeg', quality));
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        document.getElementById('imageUpload').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            window.originalImageSrc = await compressImage(file, 900, 0.75);
+            const img = new Image();
+            img.onload = function() {
+                loadedImage = img;
+                document.getElementById('placeholderText').style.display = 'none';
+                document.getElementById('imageCanvas').classList.remove('hidden');
+                redrawCanvas();
+            };
+            img.src = window.originalImageSrc;
+        });
+        
+        document.getElementById('finishedPaintingUpload').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            window.finishedImageSrc = await compressImage(file, 900, 0.75);
+            document.getElementById('finishedPreviewImg').src = window.finishedImageSrc;
+            document.getElementById('finishedContainer').classList.remove('hidden');
+        });
+        
+        function redrawCanvas() {
+            if (!loadedImage) return;
+            const canvas = document.getElementById('imageCanvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = loadedImage.width;
+            canvas.height = loadedImage.height;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const opacity = document.getElementById('rangeOpacity').value / 100;
+            const contrast = document.getElementById('rangeContrast').value;
+            const brightness = document.getElementById('rangeBrightness').value;
+            const isGrayscale = document.getElementById('checkGrayscale').checked;
+            ctx.globalAlpha = opacity;
+            ctx.filter = `contrast(${contrast}%) brightness(${brightness}%) ${isGrayscale ? 'grayscale(100%)' : ''}`;
+            
+            ctx.drawImage(loadedImage, 0, 0);
+            ctx.filter = 'none';
+            ctx.globalAlpha = 1.0;
+            drawGrid();
+        }
+        
+        function drawGrid() {
+            const gridCanvas = document.getElementById('gridCanvas');
+            const showGrid = document.getElementById('checkGrid').checked;
+            
+            if (!showGrid || !loadedImage) {
+                gridCanvas.classList.add('hidden');
+                return;
+            }
+            gridCanvas.classList.remove('hidden');
+            gridCanvas.width = loadedImage.width;
+            gridCanvas.height = loadedImage.height;
+            const ctx = gridCanvas.getContext('2d');
+            ctx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
+            const divisions = parseInt(document.getElementById('gridDensity').value);
+            const stepX = gridCanvas.width / divisions;
+            const stepY = gridCanvas.height / divisions;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.lineWidth = Math.max(1, gridCanvas.width / 400);
+            for (let i = 1; i < divisions; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * stepX, 0);
+                ctx.lineTo(i * stepX, gridCanvas.height);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, i * stepY);
+                ctx.lineTo(gridCanvas.width, i * stepY);
+                ctx.stroke();
+            }
+        }
+        
+        function updateTransform(type, source = 'range') {
+            const rangeEl = document.getElementById(`range${type}`);
+            const inputEl = document.getElementById(`input${type}Num`);
+            
+            let val = 0;
+            if (source === 'input') {
+                val = parseInt(inputEl.value) || 0;
+                rangeEl.value = val;
+            } else {
+                val = parseInt(rangeEl.value) || 0;
+                inputEl.value = val;
+            }
+            const rotateVal = document.getElementById('rangeRotate').value;
+            const skewXVal = document.getElementById('rangeSkewX').value;
+            const skewYVal = document.getElementById('rangeSkewY').value;
+            const container = document.getElementById('transformContainer');
+            container.style.transform = `rotate(${rotateVal}deg) skew(${skewXVal}deg, ${skewYVal}deg)`;
+        }
+        
+        ['rangeOpacity', 'rangeContrast', 'rangeBrightness', 'checkGrayscale', 'checkGrid', 'gridDensity'].forEach(id => {
+            document.getElementById(id).addEventListener('input', () => {
+                document.getElementById('valOpacity').innerText = document.getElementById('rangeOpacity').value + '%';
+                document.getElementById('valContrast').innerText = document.getElementById('rangeContrast').value + '%';
+                document.getElementById('valBrightness').innerText = document.getElementById('rangeBrightness').value + '%';
+                redrawCanvas();
+            });
+        });
+        
+        document.getElementById('rangeRotate').addEventListener('input', () => updateTransform('Rotate', 'range'));
+        document.getElementById('inputRotateNum').addEventListener('input', () => updateTransform('Rotate', 'input'));
+        document.getElementById('rangeSkewX').addEventListener('input', () => updateTransform('SkewX', 'range'));
+        document.getElementById('inputSkewXNum').addEventListener('input', () => updateTransform('SkewX', 'input'));
+        document.getElementById('rangeSkewY').addEventListener('input', () => updateTransform('SkewY', 'range'));
+        document.getElementById('inputSkewYNum').addEventListener('input', () => updateTransform('SkewY', 'input'));
+        
+        document.getElementById('imageCanvas').addEventListener('click', function(e) {
+            if (!loadedImage) return;
+            const canvas = this;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+            const ctx = canvas.getContext('2d');
+            const pixel = ctx.getImageData(x, y, 1, 1).data;
+            const r = pixel[0], g = pixel[1], b = pixel[2];
+            document.getElementById('colorPreview').style.backgroundColor = `rgb(${r},${g},${b})`;
+            document.getElementById('rgbValue').innerText = `RGB: (${r}, ${g}, ${b})`;
+            let advice = "Basiskleur";
+            if (r > 200 && g > 200 && b > 200) advice = "Voeg heel weinig grijs/blauw toe voor schaduw.";
+            else if (r > g && r > b) advice = "Mengadvies: Roodtint (gebruik Oker, Geroest Rood of Wit).";
+            else if (g > r && g > b) advice = "Mengadvies: Groentint (mengen met Geel en Blauw / Ombré).";
+            else if (b > r && b > g) advice = "Mengadvies: Blauwtint (mengen met Ultramarijn en Wit).";
+            else advice = "Neutrale tint / Aardetint (gebruik Umber, Sienna of Oker).";
+            document.getElementById('mixAdvice').innerText = advice;
+        });
+
+        window.saveCurrentAsProject = async function() {
+            if (!window.originalImageSrc) {
+                alert("Laad eerst een voorbeeld-ontwerp in!");
+                return;
+            }
+            showToast("Bezig met opslaan in Firestore...");
+            try {
+                const data = {
+                    title: document.getElementById('projectName').value,
+                    date: new Date().toLocaleDateString('nl-NL'),
+                    width: document.getElementById('canvasWidth').value,
+                    height: document.getElementById('canvasHeight').value,
+                    originalImage: window.originalImageSrc,
+                    finishedImage: null,
+                    type: 'project'
+                };
+                await addDoc(collection(db, "schilder_projecten"), data);
+                updateCounters();
+                showToast("Opgeslagen in Firestore Cloud! ☁️");
+            } catch (err) {
+                console.error(err);
+                alert("Fout bij opslaan: " + err.message);
+            }
+        };
+
+        window.saveCurrentAsFinished = async function() {
+            if (!window.finishedImageSrc) {
+                alert("Upload eerst een foto van je afgewerkte schilderij!");
+                return;
+            }
+            showToast("Bezig met opslaan van voltooide foto...");
+            try {
+                const data = {
+                    title: document.getElementById('projectName').value,
+                    date: new Date().toLocaleDateString('nl-NL'),
+                    width: document.getElementById('canvasWidth').value,
+                    height: document.getElementById('canvasHeight').value,
+                    originalImage: window.originalImageSrc || "",
+                    finishedImage: window.finishedImageSrc,
+                    type: 'finished'
+                };
+                await addDoc(collection(db, "schilder_projecten"), data);
+                updateCounters();
+                showToast("Afgewerkt schilderij opgeslagen! 🏆");
+            } catch (err) {
+                console.error(err);
+                alert("Fout bij opslaan: " + err.message);
+            }
+        };
+
+        async function updateCounters() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "schilder_projecten"));
+                let pCount = 0, fCount = 0;
+                querySnapshot.forEach((doc) => {
+                    const item = doc.data();
+                    if (item.type === 'finished') fCount++;
+                    else pCount++;
+                });
+                document.getElementById('countProjects').innerText = pCount;
+                document.getElementById('countFinished').innerText = fCount;
+                document.getElementById('badgeProjects').innerText = pCount;
+                document.getElementById('badgeFinished').innerText = fCount;
+            } catch (e) { 
+                console.error("Fout bij ophalen tellers:", e); 
+            }
+        }
+        updateCounters();
+
+        window.openProjectsGallery = async function() {
+            const listEl = document.getElementById('projectsList');
+            listEl.innerHTML = '<p class="text-slate-400 text-center col-span-2 py-4">Laden...</p>';
+            document.getElementById('projectsModal').classList.remove('hidden');
+            try {
+                const querySnapshot = await getDocs(collection(db, "schilder_projecten"));
+                listEl.innerHTML = '';
+                let count = 0;
+                querySnapshot.forEach((d) => {
+                    const item = d.data();
+                    if (item.type !== 'finished') {
+                        count++;
+                        const card = document.createElement('div');
+                        card.className = "bg-slate-900 border border-slate-700 rounded-lg p-3 flex gap-3 items-center justify-between";
+                        card.innerHTML = `
+                            <div class="flex items-center gap-3 overflow-hidden">
+                                <img src="${item.originalImage}" class="w-14 h-14 object-cover rounded border border-slate-700 shrink-0">
+                                <div class="overflow-hidden">
+                                    <h3 class="font-semibold text-sm text-slate-200 truncate">${item.title}</h3>
+                                    <p class="text-[11px] text-slate-400">${item.date} • ${item.width}x${item.height}cm</p>
+                                </div>
+                            </div>
+                            <div class="flex flex-col gap-1 shrink-0">
+                                <button onclick="loadCloudItem('${d.id}')" class="bg-indigo-600 text-white text-xs px-2.5 py-1 rounded">Laad</button>
+                                <button onclick="deleteCloudItem('${d.id}', openProjectsGallery)" class="bg-red-600 text-white text-xs px-2.5 py-1 rounded">Wis</button>
+                            </div>
+                        `;
+                        listEl.appendChild(card);
+                    }
+                });
+                if (count === 0) listEl.innerHTML = '<p class="text-slate-400 text-center col-span-2 py-4">Geen lopende projecten gevonden.</p>';
+            } catch(err) {
+                console.error(err);
+                listEl.innerHTML = '<p class="text-red-400 text-center col-span-2 py-4">Fout bij laden.</p>';
+            }
+        };
+
+        window.openFinishedGallery = async function() {
+            const listEl = document.getElementById('finishedList');
+            listEl.innerHTML = '<p class="text-slate-400 text-center col-span-2 py-4">Laden...</p>';
+            document.getElementById('finishedModal').classList.remove('hidden');
+            try {
+                const querySnapshot = await getDocs(collection(db, "schilder_projecten"));
+                listEl.innerHTML = '';
+                let count = 0;
+                querySnapshot.forEach((d) => {
+                    const item = d.data();
+                    if (item.type === 'finished') {
+                        count++;
+                        const card = document.createElement('div');
+                        card.className = "bg-slate-900 border border-slate-700 rounded-lg p-3 flex gap-3 items-center justify-between";
+                        card.innerHTML = `
+                            <div class="flex items-center gap-3 overflow-hidden">
+                                <img src="${item.finishedImage || item.originalImage}" class="w-14 h-14 object-cover rounded border border-slate-700 shrink-0">
+                                <div class="overflow-hidden">
+                                    <h3 class="font-semibold text-sm text-slate-200 truncate">${item.title}</h3>
+                                    <p class="text-[11px] text-slate-400">${item.date} • ${item.width}x${item.height}cm</p>
+                                </div>
+                            </div>
+                            <div class="flex flex-col gap-1 shrink-0">
+                                <button onclick="loadCloudItem('${d.id}')" class="bg-amber-600 text-white text-xs px-2.5 py-1 rounded">Laad</button>
+                                <button onclick="deleteCloudItem('${d.id}', openFinishedGallery)" class="bg-red-600 text-white text-xs px-2.5 py-1 rounded">Wis</button>
+                            </div>
+                        `;
+                        listEl.appendChild(card);
+                    }
+                });
+                if (count === 0) listEl.innerHTML = '<p class="text-slate-400 text-center col-span-2 py-4">Geen afgewerkte schilderijen gevonden.</p>';
+            } catch(err) {
+                console.error(err);
+                listEl.innerHTML = '<p class="text-red-400 text-center col-span-2 py-4">Fout bij laden.</p>';
+            }
+        };
+
+        window.loadCloudItem = async function(id) {
+            const docSnap = await getDoc(doc(db, "schilder_projecten", id));
+            if (!docSnap.exists()) return;
+            const item = docSnap.data();
+            document.getElementById('projectName').value = item.title;
+            document.getElementById('canvasWidth').value = item.width;
+            document.getElementById('canvasHeight').value = item.height;
+            
+            if (item.originalImage) {
+                window.originalImageSrc = item.originalImage;
+                const img = new Image();
+                img.onload = function() {
+                    loadedImage = img;
+                    document.getElementById('placeholderText').style.display = 'none';
+                    document.getElementById('imageCanvas').classList.remove('hidden');
+                    redrawCanvas();
+                };
+                img.src = window.originalImageSrc;
+            }
+            if (item.finishedImage) {
+                window.finishedImageSrc = item.finishedImage;
+                document.getElementById('finishedPreviewImg').src = window.finishedImageSrc;
+                document.getElementById('finishedContainer').classList.remove('hidden');
+            }
+            closeModalByName('projectsModal');
+            closeModalByName('finishedModal');
+            showToast(`Geladen: "${item.title}"`);
+        };
+
+        window.deleteCloudItem = async function(id, refreshCallback) {
+            if (!confirm("Weet je zeker dat je dit wilt verwijderen?")) return;
+            await deleteDoc(doc(db, "schilder_projecten", id));
+            updateCounters();
+            refreshCallback();
+        };
+
+        window.closeModal = () => document.getElementById('imageModal').classList.add('hidden');
+        window.closeModalByName = (id) => document.getElementById(id).classList.add('hidden');
+        window.toggleTheaterMode = () => document.body.classList.toggle('theater-mode');
+        window.resetTransform = () => {
+            document.getElementById('rangeRotate').value = 0;
+            document.getElementById('inputRotateNum').value = 0;
+            document.getElementById('rangeSkewX').value = 0;
+            document.getElementById('inputSkewXNum').value = 0;
+            document.getElementById('rangeSkewY').value = 0;
+            document.getElementById('inputSkewYNum').value = 0;
+            const container = document.getElementById('transformContainer');
+            container.style.transform = `rotate(0deg) skew(0deg, 0deg)`;
+        };
+    </script>
+</body>
+</html>
