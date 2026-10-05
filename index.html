@@ -149,11 +149,17 @@
                 </div>
             </div>
 
-            <!-- 4. Hoekcorrectie -->
+            <!-- 4. Hoekcorrectie & Graden invoer -->
             <div class="flex flex-col gap-3 border-t border-slate-700 pt-3">
-                <label class="font-semibold text-sm text-slate-300">4. Hoekcorrectie (Beamer)</label>
+                <div class="flex justify-between items-center">
+                    <label class="font-semibold text-sm text-slate-300">4. Hoekcorrectie (Beamer)</label>
+                    <div class="flex items-center gap-1">
+                        <input type="number" id="inputRotateNum" value="0" min="-180" max="180" class="w-16 bg-slate-900 border border-slate-700 rounded px-2 py-0.5 text-xs text-center font-mono text-indigo-400">
+                        <span class="text-xs text-slate-400">°</span>
+                    </div>
+                </div>
                 <div>
-                    <div class="flex justify-between text-xs text-slate-400"><span>Rotatie</span><span id="valRotate">0°</span></div>
+                    <div class="flex justify-between text-xs text-slate-400"><span>Rotatie Schuifbalk</span><span id="valRotate">0°</span></div>
                     <input type="range" id="rangeRotate" min="-180" max="180" value="0" class="w-full accent-indigo-500">
                 </div>
                 <div>
@@ -286,14 +292,13 @@
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Filters toepassen
             const opacity = document.getElementById('rangeOpacity').value / 100;
             const contrast = document.getElementById('rangeContrast').value;
             const brightness = document.getElementById('rangeBrightness').value;
             const isGrayscale = document.getElementById('checkGrayscale').checked;
 
             ctx.globalAlpha = opacity;
-            ctx.filter = `contrast(${contrast}%) brightness(${brightness}%) ${isGrayscale ? 'grayscale(100% )' : ''}`;
+            ctx.filter = `contrast(${contrast}%) brightness(${brightness}%) ${isGrayscale ? 'grayscale(100%)' : ''}`;
             
             ctx.drawImage(loadedImage, 0, 0);
             ctx.filter = 'none';
@@ -325,13 +330,11 @@
             ctx.lineWidth = Math.max(1, gridCanvas.width / 400);
 
             for (let i = 1; i < divisions; i++) {
-                // Verticale lijnen
                 ctx.beginPath();
                 ctx.moveTo(i * stepX, 0);
                 ctx.lineTo(i * stepX, gridCanvas.height);
                 ctx.stroke();
 
-                // Horizontale lijnen
                 ctx.beginPath();
                 ctx.moveTo(0, i * stepY);
                 ctx.lineTo(gridCanvas.width, i * stepY);
@@ -339,20 +342,31 @@
             }
         }
 
-        function updateTransform() {
-            const rotate = document.getElementById('rangeRotate').value;
+        function updateTransform(source = 'range') {
+            const rangeRotate = document.getElementById('rangeRotate');
+            const inputRotateNum = document.getElementById('inputRotateNum');
+            
+            let rotateVal = 0;
+            if (source === 'input') {
+                rotateVal = parseInt(inputRotateNum.value) || 0;
+                rangeRotate.value = rotateVal;
+            } else {
+                rotateVal = parseInt(rangeRotate.value) || 0;
+                inputRotateNum.value = rotateVal;
+            }
+
             const skewX = document.getElementById('rangeSkewX').value;
             const skewY = document.getElementById('rangeSkewY').value;
 
-            document.getElementById('valRotate').innerText = rotate + '°';
+            document.getElementById('valRotate').innerText = rotateVal + '°';
             document.getElementById('valSkewX').innerText = skewX;
             document.getElementById('valSkewY').innerText = skewY;
 
             const container = document.getElementById('transformContainer');
-            container.style.transform = `rotate(${rotate}deg) skew(${skewX}deg, ${skewY}deg)`;
+            container.style.transform = `rotate(${rotateVal}deg) skew(${skewX}deg, ${skewY}deg)`;
         }
 
-        // Event Listeners voor schuifjes en knoppen
+        // Event Listeners
         ['rangeOpacity', 'rangeContrast', 'rangeBrightness', 'checkGrayscale', 'checkGrid', 'gridDensity'].forEach(id => {
             document.getElementById(id).addEventListener('input', () => {
                 document.getElementById('valOpacity').innerText = document.getElementById('rangeOpacity').value + '%';
@@ -362,8 +376,11 @@
             });
         });
 
-        ['rangeRotate', 'rangeSkewX', 'rangeSkewY'].forEach(id => {
-            document.getElementById(id).addEventListener('input', updateTransform);
+        document.getElementById('rangeRotate').addEventListener('input', () => updateTransform('range'));
+        document.getElementById('inputRotateNum').addEventListener('input', () => updateTransform('input'));
+        
+        ['rangeSkewX', 'rangeSkewY'].forEach(id => {
+            document.getElementById(id).addEventListener('input', () => updateTransform('range'));
         });
 
         // Kleurpictogram / Kleurmenging bij klik op afbeelding
@@ -383,7 +400,6 @@
             document.getElementById('colorPreview').style.backgroundColor = `rgb(${r},${g},${b})`;
             document.getElementById('rgbValue').innerText = `RGB: (${r}, ${g}, ${b})`;
 
-            // Eenvoudig mengadvies genereren
             let advice = "Basiskleur";
             if (r > 200 && g > 200 && b > 200) advice = "Voeg heel weinig grijs/blauw toe voor schaduw.";
             else if (r > g && r > b) advice = "Mengadvies: Roodtint (gebruik Oker, Geroest Rood of Wit).";
@@ -465,7 +481,8 @@
                 const querySnapshot = await getDocs(collection(db, "schilder_projecten"));
                 let pCount = 0, fCount = 0;
                 querySnapshot.forEach((doc) => {
-                    if (doc.data().type === 'finished') fCount++;
+                    const item = doc.data();
+                    if (item.type === 'finished') fCount++;
                     else pCount++;
                 });
                 document.getElementById('countProjects').innerText = pCount;
@@ -481,32 +498,36 @@
             listEl.innerHTML = '<p class="text-slate-400 text-center col-span-2 py-4">Laden...</p>';
             document.getElementById('projectsModal').classList.remove('hidden');
 
-            const querySnapshot = await getDocs(collection(db, "schilder_projecten"));
-            listEl.innerHTML = '';
-            let count = 0;
-            querySnapshot.forEach((d) => {
-                const item = d.data();
-                if (item.type !== 'finished') {
-                    count++;
-                    const card = document.createElement('div');
-                    card.className = "bg-slate-900 border border-slate-700 rounded-lg p-3 flex gap-3 items-center justify-between";
-                    card.innerHTML = `
-                        <div class="flex items-center gap-3 overflow-hidden">
-                            <img src="${item.originalImage}" class="w-14 h-14 object-cover rounded border border-slate-700 shrink-0">
-                            <div class="overflow-hidden">
-                                <h3 class="font-semibold text-sm text-slate-200 truncate">${item.title}</h3>
-                                <p class="text-[11px] text-slate-400">${item.date} • ${item.width}x${item.height}cm</p>
+            try {
+                const querySnapshot = await getDocs(collection(db, "schilder_projecten"));
+                listEl.innerHTML = '';
+                let count = 0;
+                querySnapshot.forEach((d) => {
+                    const item = d.data();
+                    if (item.type !== 'finished') {
+                        count++;
+                        const card = document.createElement('div');
+                        card.className = "bg-slate-900 border border-slate-700 rounded-lg p-3 flex gap-3 items-center justify-between";
+                        card.innerHTML = `
+                            <div class="flex items-center gap-3 overflow-hidden">
+                                <img src="${item.originalImage}" class="w-14 h-14 object-cover rounded border border-slate-700 shrink-0">
+                                <div class="overflow-hidden">
+                                    <h3 class="font-semibold text-sm text-slate-200 truncate">${item.title}</h3>
+                                    <p class="text-[11px] text-slate-400">${item.date} • ${item.width}x${item.height}cm</p>
+                                </div>
                             </div>
-                        </div>
-                        <div class="flex flex-col gap-1 shrink-0">
-                            <button onclick="loadCloudItem('${d.id}')" class="bg-indigo-600 text-white text-xs px-2.5 py-1 rounded">Laad</button>
-                            <button onclick="deleteCloudItem('${d.id}', openProjectsGallery)" class="bg-red-600 text-white text-xs px-2.5 py-1 rounded">Wis</button>
-                        </div>
-                    `;
-                    listEl.appendChild(card);
-                }
-            });
-            if (count === 0) listEl.innerHTML = '<p class="text-slate-400 text-center col-span-2 py-4">Geen lopende projecten.</p>';
+                            <div class="flex flex-col gap-1 shrink-0">
+                                <button onclick="loadCloudItem('${d.id}')" class="bg-indigo-600 text-white text-xs px-2.5 py-1 rounded">Laad</button>
+                                <button onclick="deleteCloudItem('${d.id}', openProjectsGallery)" class="bg-red-600 text-white text-xs px-2.5 py-1 rounded">Wis</button>
+                            </div>
+                        `;
+                        listEl.appendChild(card);
+                    }
+                });
+                if (count === 0) listEl.innerHTML = '<p class="text-slate-400 text-center col-span-2 py-4">Geen lopende projecten.</p>';
+            } catch(err) {
+                listEl.innerHTML = '<p class="text-red-400 text-center col-span-2 py-4">Fout bij laden.</p>';
+            }
         };
 
         window.openFinishedGallery = async function() {
@@ -514,32 +535,36 @@
             listEl.innerHTML = '<p class="text-slate-400 text-center col-span-2 py-4">Laden...</p>';
             document.getElementById('finishedModal').classList.remove('hidden');
 
-            const querySnapshot = await getDocs(collection(db, "schilder_projecten"));
-            listEl.innerHTML = '';
-            let count = 0;
-            querySnapshot.forEach((d) => {
-                const item = d.data();
-                if (item.type === 'finished') {
-                    count++;
-                    const card = document.createElement('div');
-                    card.className = "bg-slate-900 border border-slate-700 rounded-lg p-3 flex gap-3 items-center justify-between";
-                    card.innerHTML = `
-                        <div class="flex items-center gap-3 overflow-hidden">
-                            <img src="${item.finishedImage || item.originalImage}" class="w-14 h-14 object-cover rounded border border-slate-700 shrink-0">
-                            <div class="overflow-hidden">
-                                <h3 class="font-semibold text-sm text-slate-200 truncate">${item.title}</h3>
-                                <p class="text-[11px] text-slate-400">${item.date} • ${item.width}x${item.height}cm</p>
+            try {
+                const querySnapshot = await getDocs(collection(db, "schilder_projecten"));
+                listEl.innerHTML = '';
+                let count = 0;
+                querySnapshot.forEach((d) => {
+                    const item = d.data();
+                    if (item.type === 'finished') {
+                        count++;
+                        const card = document.createElement('div');
+                        card.className = "bg-slate-900 border border-slate-700 rounded-lg p-3 flex gap-3 items-center justify-between";
+                        card.innerHTML = `
+                            <div class="flex items-center gap-3 overflow-hidden">
+                                <img src="${item.finishedImage || item.originalImage}" class="w-14 h-14 object-cover rounded border border-slate-700 shrink-0">
+                                <div class="overflow-hidden">
+                                    <h3 class="font-semibold text-sm text-slate-200 truncate">${item.title}</h3>
+                                    <p class="text-[11px] text-slate-400">${item.date} • ${item.width}x${item.height}cm</p>
+                                </div>
                             </div>
-                        </div>
-                        <div class="flex flex-col gap-1 shrink-0">
-                            <button onclick="loadCloudItem('${d.id}')" class="bg-amber-600 text-white text-xs px-2.5 py-1 rounded">Laad</button>
-                            <button onclick="deleteCloudItem('${d.id}', openFinishedGallery)" class="bg-red-600 text-white text-xs px-2.5 py-1 rounded">Wis</button>
-                        </div>
-                    `;
-                    listEl.appendChild(card);
-                }
-            });
-            if (count === 0) listEl.innerHTML = '<p class="text-slate-400 text-center col-span-2 py-4">Geen afgewerkte schilderijen.</p>';
+                            <div class="flex flex-col gap-1 shrink-0">
+                                <button onclick="loadCloudItem('${d.id}')" class="bg-amber-600 text-white text-xs px-2.5 py-1 rounded">Laad</button>
+                                <button onclick="deleteCloudItem('${d.id}', openFinishedGallery)" class="bg-red-600 text-white text-xs px-2.5 py-1 rounded">Wis</button>
+                            </div>
+                        `;
+                        listEl.appendChild(card);
+                    }
+                });
+                if (count === 0) listEl.innerHTML = '<p class="text-slate-400 text-center col-span-2 py-4">Geen afgewerkte schilderijen.</p>';
+            } catch(err) {
+                listEl.innerHTML = '<p class="text-red-400 text-center col-span-2 py-4">Fout bij laden.</p>';
+            }
         };
 
         window.loadCloudItem = async function(id) {
@@ -583,9 +608,10 @@
         window.toggleTheaterMode = () => document.body.classList.toggle('theater-mode');
         window.resetTransform = () => {
             document.getElementById('rangeRotate').value = 0;
+            document.getElementById('inputRotateNum').value = 0;
             document.getElementById('rangeSkewX').value = 0;
             document.getElementById('rangeSkewY').value = 0;
-            updateTransform();
+            updateTransform('range');
         };
     </script>
 </body>
