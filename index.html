@@ -231,14 +231,19 @@
                 </div>
                 <button onclick="resetTransform()" class="bg-slate-700 hover:bg-slate-600 text-xs py-1.5 rounded transition mt-1">Reset Correcties</button>
             </div>
-            <!-- 5. Kleurmenging Assistent -->
+            <!-- 5. Kleurmenging & Schildersadvies -->
             <div class="flex flex-col gap-2 border-t border-slate-700 pt-3">
-                <label class="font-semibold text-sm text-slate-300">5. Kleurmenging Assistent</label>
-                <div id="colorInfo" class="bg-slate-900 p-3 rounded border border-slate-700 flex items-center gap-3">
-                    <div id="colorPreview" class="w-10 h-10 rounded border border-slate-600 bg-slate-800 shrink-0"></div>
-                    <div class="text-xs flex flex-col gap-1">
-                        <span id="rgbValue" class="font-mono">RGB: -</span>
-                        <span id="mixAdvice" class="text-slate-300">Mengadvies: Klik op afbeelding</span>
+                <label class="font-semibold text-sm text-slate-300">5. Kleurmenging & Schildersadvies</label>
+                <div id="colorInfo" class="bg-slate-900 p-3 rounded border border-slate-700 flex flex-col gap-2">
+                    <div class="flex items-center gap-3">
+                        <div id="colorPreview" class="w-10 h-10 rounded border border-slate-600 bg-slate-800 shrink-0"></div>
+                        <div class="text-xs flex flex-col gap-0.5">
+                            <span id="rgbValue" class="font-mono">RGB: -</span>
+                            <span id="mixAdvice" class="text-slate-300 font-medium">Mengadvies: Klik op afbeelding</span>
+                        </div>
+                    </div>
+                    <div id="paintOrderAdvice" class="text-xs text-indigo-300 border-t border-slate-800 pt-2 hidden">
+                        <!-- Wordt dynamisch gevuld -->
                     </div>
                 </div>
             </div>
@@ -570,14 +575,14 @@
             document.getElementById('colorPreview').style.backgroundColor = `rgb(${r},${g},${b})`;
             document.getElementById('rgbValue').innerText = `RGB: (${r}, ${g}, ${b})`;
             
-            // Slimme kleurmenging logica voor schilderen
+            // Kleurmenging logica
             let advice = "";
             const maxRGB = Math.max(r, g, b);
             const minRGB = Math.min(r, g, b);
             const diff = maxRGB - minRGB;
 
             if (r > 210 && g > 210 && b > 210) {
-                advice = "Wit / Hooglicht (Gebruik Titaanwit, eventueel heel klein tikje geel/grijs).";
+                advice = "Wit / Hooglicht (Gebruik Titaanwit, eventueel klein tikje geel/grijs).";
             } else if (r < 50 && g < 50 && b < 50) {
                 advice = "Diepzwart of Schaduw (Gebruik Ivoorzwart of Umber met Ultramarijnblauw).";
             } else if (diff < 25 && r < 180) {
@@ -597,6 +602,23 @@
             }
 
             document.getElementById('mixAdvice').innerText = `Mengadvies: ${advice}`;
+
+            // Schildersadvies: waar te beginnen / volgorde van werken
+            const orderEl = document.getElementById('paintOrderAdvice');
+            orderEl.classList.remove('hidden');
+
+            let orderText = "";
+            let relY = y / canvas.height; // Positie van boven (0) naar beneden (1)
+
+            if (relY < 0.35) {
+                orderText = "🎨 **Schildersadvies (Bovenste vlak / Achtergrond):**<br>• Schilder dit soort achtergrondpartijen of luchten **altijd als eerste**.<br>• Werk van achteren naar voren: breng eerst de grote basisvlakken aan en schilder hier later fijnere details overheen.";
+            } else if (relY > 0.70) {
+                orderText = "🎨 **Schildersadvies (Ooghoogte / Voorgrond / Object):**<br>• Dit is een belangrijk detail of voorgrondelement.<br>• Schilder dit **pas nadat** de achtergrond volledig droog is.<br>• Zet eerst de grove schaduwen en middentonen neer, en voeg als *allerlaatste* de heldere hooglichten toe.";
+            } else {
+                orderText = "🎨 **Schildersadvies (Middenzone / Onderwerp):**<br>• Dit is onderdeel van de middengronden.<br>• Dek eerst de grote egale vlakken af met een grove kwast. Breng daarna de kleurnuances en overgangen aan.";
+            }
+
+            orderEl.innerHTML = orderText;
         });
 
         window.saveCurrentAsProject = async function() {
