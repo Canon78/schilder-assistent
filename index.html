@@ -395,13 +395,11 @@
             ctx.globalAlpha = opacity;
 
             if (isSketch) {
-                // Maak een tijdelijk klein canvas om randdetectie / schets-effect te berekenen
                 const tempCanvas = document.createElement('canvas');
                 tempCanvas.width = drawW;
                 tempCanvas.height = drawH;
                 const tCtx = tempCanvas.getContext('2d');
                 
-                // Teken foto in zwart-wit met hoog contrast
                 tCtx.filter = `contrast(180%) brightness(110%) grayscale(100%)`;
                 tCtx.drawImage(loadedImage, 0, 0, loadedImage.width, loadedImage.height, 0, 0, drawW, drawH);
                 
@@ -410,19 +408,17 @@
                 const w = drawW;
                 const h = drawH;
                 
-                // Eenvoudige Sobel / randdetectie om contouren te vinden
                 const edgeData = tCtx.createImageData(w, h);
                 const dOut = edgeData.data;
                 
                 for (let y = 1; y < h - 1; y++) {
                     for (let x = 1; x < w - 1; x++) {
                         const idx = (y * w + x) * 4;
-                        // Simpele vergelijking met buurpixels (rechts en onder)
                         const rightIdx = (y * w + (x + 1)) * 4;
                         const bottomIdx = ((y + 1) * w + x) * 4;
                         
                         const diff = Math.abs(data[idx] - data[rightIdx]) + Math.abs(data[idx] - data[bottomIdx]);
-                        const val = diff > 30 ? 0 : 255; // Donkere lijn als er verschil is, anders wit
+                        const val = diff > 30 ? 0 : 255;
                         
                         dOut[idx] = val;
                         dOut[idx+1] = val;
@@ -432,7 +428,6 @@
                 }
                 tCtx.putImageData(edgeData, 0, 0);
 
-                // Vul achtergrond wit en teken de contourlijnen erop
                 ctx.fillStyle = '#FFFFFF';
                 ctx.fillRect(dx, dy, drawW, drawH);
                 
@@ -571,15 +566,37 @@
             const ctx = canvas.getContext('2d');
             const pixel = ctx.getImageData(x, y, 1, 1).data;
             const r = pixel[0], g = pixel[1], b = pixel[2];
+            
             document.getElementById('colorPreview').style.backgroundColor = `rgb(${r},${g},${b})`;
             document.getElementById('rgbValue').innerText = `RGB: (${r}, ${g}, ${b})`;
-            let advice = "Basiskleur";
-            if (r > 200 && g > 200 && b > 200) advice = "Voeg heel weinig grijs/blauw toe voor schaduw.";
-            else if (r > g && r > b) advice = "Mengadvies: Roodtint (gebruik Oker, Geroest Rood of Wit).";
-            else if (g > r && g > b) advice = "Mengadvies: Groentint (mengen met Geel en Blauw / Ombré).";
-            else if (b > r && b > g) advice = "Mengadvies: Blauwtint (mengen met Ultramarijn en Wit).";
-            else advice = "Neutrale tint / Aardetint (gebruik Umber, Sienna of Oker).";
-            document.getElementById('mixAdvice').innerText = advice;
+            
+            // Slimme kleurmenging logica voor schilderen
+            let advice = "";
+            const maxRGB = Math.max(r, g, b);
+            const minRGB = Math.min(r, g, b);
+            const diff = maxRGB - minRGB;
+
+            if (r > 210 && g > 210 && b > 210) {
+                advice = "Wit / Hooglicht (Gebruik Titaanwit, eventueel heel klein tikje geel/grijs).";
+            } else if (r < 50 && g < 50 && b < 50) {
+                advice = "Diepzwart of Schaduw (Gebruik Ivoorzwart of Umber met Ultramarijnblauw).";
+            } else if (diff < 25 && r < 180) {
+                advice = "Neutrale Grijstint / Schaduw (Meng Wit met Zwart en een tikje Blauw of Ombré).";
+            } else if (r > 130 && g > 100 && b > 70 && r > b && (r - b) < 70) {
+                advice = "Aardetint / Huidskleur (Meng Wit, Geel Oker, eventueel Sienna of Geroest Rood).";
+            } else if (r > 90 && g < 80 && b < 60 && r > (g + b)) {
+                advice = "Warme Aardetint / Bruin (Gebruik Ombrébruin of Siennabruin, bijsturen met Oker of Wit).";
+            } else if (r > g && r > b) {
+                advice = "Rood- / Oranjetint (Meng Rood of Geroest Rood met Geel Oker en Wit).";
+            } else if (g > r && g > b) {
+                advice = "Groentint (Meng Geel met Blauw / Ultramarijn; voeg Oker of Umber toe om te dimmen).";
+            } else if (b > r && b > g) {
+                advice = "Blauwtint (Gebruik Ultramarijnblauw of Cyaan, aan te sterken met Wit of heel tikje Zwart).";
+            } else {
+                advice = "Complexer mengsel (Probeer te starten met Oker, Umber en Wit).";
+            }
+
+            document.getElementById('mixAdvice').innerText = `Mengadvies: ${advice}`;
         });
 
         window.saveCurrentAsProject = async function() {
