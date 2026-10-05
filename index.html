@@ -19,7 +19,6 @@
             padding: 0 !important;
             margin: 0 !important;
         }
-        /* Stijl voor de zwevende terugknop in theatermodus */
         #exitTheaterBtn {
             display: none;
         }
@@ -30,7 +29,7 @@
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col relative">
 
-    <!-- Zwevende knop om theatermodus te verlaten (altijd zichtbaar in theatermodus) -->
+    <!-- Zwevende knop om theatermodus te verlaten -->
     <button id="exitTheaterBtn" onclick="toggleTheaterMode()" class="fixed top-4 right-4 z-50 bg-red-600/80 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg backdrop-blur items-center gap-1.5 transition">
         ✕ Sluit Beamer / Theatermodus
     </button>
@@ -43,10 +42,26 @@
         </div>
     </div>
 
+    <!-- Modal voor Projecten Galerij -->
+    <div id="galleryModal" class="fixed inset-0 z-50 bg-black/80 flex items-center justify-center hidden p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-850">
+                <h2 class="font-bold text-lg text-slate-200">🖼️ Mijn Schilderijen Galerij</h2>
+                <button onclick="closeGallery()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1 rounded text-sm transition">Sluiten ✕</button>
+            </div>
+            <div id="galleryList" class="p-4 flex-1 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <!-- Wordt dynamisch gevuld -->
+            </div>
+        </div>
+    </div>
+
     <!-- Header -->
     <header class="bg-slate-800 border-b border-slate-700 p-4 flex justify-between items-center">
         <h1 class="text-xl font-bold flex items-center gap-2">🎨 Schilder & Projectie Assistent</h1>
         <div class="flex gap-2">
+            <button onclick="openGallery()" class="bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded text-sm font-semibold transition flex items-center gap-1.5">
+                📁 Mijn Galerij (<span id="projectCount">0</span>)
+            </button>
             <button onclick="toggleTheaterMode()" class="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded text-sm font-semibold transition">🎬 Theatermodus (Beamer)</button>
         </div>
     </header>
@@ -57,18 +72,22 @@
         <!-- Sidebar / Bedieningspaneel -->
         <aside id="control-panel" class="w-full md:w-96 bg-slate-800 p-4 rounded-xl border border-slate-700 flex flex-col gap-4 overflow-y-auto max-h-[calc(100vh-120px)]">
             
+            <!-- Project Naam -->
+            <div class="flex flex-col gap-1">
+                <label class="font-semibold text-xs text-slate-400">Naam Schilderij / Project</label>
+                <input type="text" id="projectName" value="Mijn Schilderij" class="bg-slate-900 border border-slate-700 rounded p-2 text-sm text-slate-200 font-semibold focus:border-indigo-500 outline-none">
+            </div>
+
             <!-- 1. Afbeelding uploaden -->
-            <div class="flex flex-col gap-2">
+            <div class="flex flex-col gap-2 border-t border-slate-700 pt-3">
                 <label class="font-semibold text-sm text-slate-300">1. Ontwerp Inladen</label>
                 <input type="file" id="imageUpload" accept="image/*" class="file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-500 file:text-white hover:file:bg-indigo-600 text-sm cursor-pointer">
             </div>
 
-            <!-- 1B. Project Opslaan / Laden -->
-            <div class="flex gap-2 border-t border-slate-700 pt-3">
-                <button onclick="saveProject()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-xs py-2 rounded font-semibold transition">💾 Sla Project Op</button>
-                <label class="flex-1 bg-slate-700 hover:bg-slate-600 text-xs py-2 rounded font-semibold text-center cursor-pointer transition">
-                    📂 Laad Project <input type="file" id="loadProjectFile" accept=".json" class="hidden">
-                </label>
+            <!-- 1B. Project Opslaan naar Galerij -->
+            <div class="flex gap-2">
+                <button onclick="saveProjectToLocalStorage()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-xs py-2 rounded font-semibold transition shadow">💾 Sla op in Galerij</button>
+                <button onclick="exportProjectJson()" class="bg-slate-700 hover:bg-slate-600 text-xs px-3 py-2 rounded font-semibold transition" title="Exporteer als los JSON-bestand">📥 Exporteer</button>
             </div>
 
             <!-- 2. Doekgrootte -->
@@ -162,7 +181,7 @@
             <!-- 6. Voltooid Schilderij Opslaan -->
             <div class="flex flex-col gap-2 border-t border-slate-700 pt-3">
                 <label class="font-semibold text-sm text-slate-300">6. Voltooid Schilderij Opslaan</label>
-                <p class="text-xs text-slate-400">Upload een foto van je eindresultaat om het bij dit project te bewaren.</p>
+                <p class="text-xs text-slate-400">Upload een foto van je eindresultaat bij dit project.</p>
                 <input type="file" id="finishedPaintingUpload" accept="image/*" class="file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-teal-600 file:text-white hover:file:bg-teal-700 text-xs cursor-pointer">
                 <div id="finishedContainer" class="hidden mt-2 relative cursor-pointer group" onclick="openModal()">
                     <img id="finishedPreviewImg" class="w-full h-32 object-cover rounded border border-slate-600 group-hover:opacity-90 transition" alt="Voltooid schilderij">
@@ -179,10 +198,8 @@
                 <p class="text-sm">Upload een foto via het paneel links om te beginnen.</p>
             </div>
             
-            <!-- Container voor transformaties en raster -->
             <div id="transformContainer" class="relative transition-transform duration-75 origin-center flex items-center justify-center">
                 <canvas id="imageCanvas" class="max-w-full max-h-[75vh] object-contain shadow-2xl cursor-crosshair hidden"></canvas>
-                <!-- Dynamisch raster canvas overlay -->
                 <canvas id="gridCanvas" class="absolute inset-0 w-full h-full pointer-events-none hidden"></canvas>
             </div>
         </section>
@@ -199,6 +216,7 @@
         
         const placeholderText = document.getElementById('placeholderText');
         const transformContainer = document.getElementById('transformContainer');
+        const projectNameInput = document.getElementById('projectName');
 
         const rangeOpacity = document.getElementById('rangeOpacity');
         const rangeContrast = document.getElementById('rangeContrast');
@@ -220,9 +238,16 @@
         const finishedPreviewImg = document.getElementById('finishedPreviewImg');
         const imageModal = document.getElementById('imageModal');
         const modalImg = document.getElementById('modalImg');
+        const galleryModal = document.getElementById('galleryModal');
+        const galleryList = document.getElementById('galleryList');
+        const projectCount = document.getElementById('projectCount');
 
         let originalImageSrc = null;
         let finishedImageSrc = null;
+        let currentProjectId = null; // Als we een bestaand project bewerken
+
+        // Bij laden pagina: galerij tellers bijwerken
+        updateGalleryCount();
 
         // Afbeelding inladen
         imageUpload.addEventListener('change', (e) => {
@@ -255,7 +280,6 @@
             img.src = src;
         }
 
-        // Afbeelding tekenen en raster bijwerken
         function drawImage() {
             if (!imageCanvas.classList.contains('hidden')) {
                 const img = new Image();
@@ -281,7 +305,6 @@
             document.getElementById('valBrightness').innerText = rangeBrightness.value + '%';
         }
 
-        // Hulplijn raster tekenen
         function drawGridLines() {
             gridCtx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
             gridCtx.strokeStyle = 'rgba(99, 102, 241, 0.6)';
@@ -324,7 +347,6 @@
             element.addEventListener('input', drawImage);
         });
 
-        // Transformaties / hoekcorrectie
         function updateTransform() {
             const rot = rangeRotate.value;
             const skewX = rangeSkewX.value;
@@ -371,9 +393,9 @@
             const diff = max - min;
 
             if (diff < 20) {
-                if (max > 200) advice = "Lichtgrijs/Wit: Veel titaanwit + mini-druppel omber/grijs.";
+                if (max > 200) advice = "Lichtgrijs/Wit: Titaanwit + mini-druppel omber/grijs.";
                 else if (max < 60) advice = "Diepzwart: Lamp zwart + tikje ultramarijn blauw.";
-                else advice = "Neutraal grijs: Wit + zwart + druppel van de aangrenzende kleurtint.";
+                else advice = "Neutraal grijs: Wit + zwart + druppel aangrenzende kleurtint.";
             } else if (r === max) {
                 if (g > b + 30) advice = "Oranjetint: Rood vermengen met geel + wit.";
                 else if (b > g + 30) advice = "Paars-/Roztint: Rood + ultramarijn blauw + wit.";
@@ -403,7 +425,6 @@
             reader.readAsDataURL(file);
         });
 
-        // Modals voor eindresultaat groot openen/sluiten
         function openModal() {
             if (finishedImageSrc) {
                 modalImg.src = finishedImageSrc;
@@ -414,14 +435,160 @@
             imageModal.classList.add('hidden');
         }
 
-        // Project opslaan naar bestand (.json)
-        function saveProject() {
+        // --- GALERIJ & LOCALSTORAGE FUNCTIES ---
+
+        function getStoredProjects() {
+            try {
+                return JSON.parse(localStorage.getItem('schilder_projects')) || [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function updateGalleryCount() {
+            const projects = getStoredProjects();
+            projectCount.innerText = projects.length;
+        }
+
+        function saveProjectToLocalStorage() {
             if (!originalImageSrc) {
                 alert("Laad eerst een ontwerp in voordat je opslaat!");
                 return;
             }
 
+            const title = projectNameInput.value.trim() || "Naamloos Schilderij";
+            const projects = getStoredProjects();
+
             const projectData = {
+                id: currentProjectId || 'proj_' + Date.now(),
+                title: title,
+                date: new Date().toLocaleDateString('nl-NL', { day: '2-digit', month: 'short', year: 'numeric' }),
+                width: document.getElementById('canvasWidth').value,
+                height: document.getElementById('canvasHeight').value,
+                opacity: rangeOpacity.value,
+                contrast: rangeContrast.value,
+                brightness: rangeBrightness.value,
+                grayscale: checkGrayscale.checked,
+                grid: checkGrid.checked,
+                gridDensity: gridDensity.value,
+                rotate: rangeRotate.value,
+                skewX: rangeSkewX.value,
+                skewY: rangeSkewY.value,
+                originalImage: originalImageSrc,
+                finishedImage: finishedImageSrc
+            };
+
+            // Bestaande bijwerken of nieuwe toevoegen
+            const index = projects.findIndex(p => p.id === projectData.id);
+            if (index !== -1) {
+                projects[index] = projectData;
+            } else {
+                projects.unshift(index, 0, projectData); // Vooraan toevoegen
+                projects.push(projectData);
+            }
+
+            localStorage.setItem('schilder_projects', JSON.stringify(projects));
+            currentProjectId = projectData.id;
+            updateGalleryCount();
+            alert(`Project "${title}" succesvol opgeslagen in je galerij!`);
+        }
+
+        function openGallery() {
+            const projects = getStoredProjects();
+            galleryList.innerHTML = '';
+
+            if (projects.length === 0) {
+                galleryList.innerHTML = `<p class="text-slate-400 text-center col-span-2 py-8 text-sm">Nog geen opgeslagen schilderijen in je galerij.</p>`;
+            } else {
+                projects.forEach(proj => {
+                    const card = document.createElement('div');
+                    card.className = "bg-slate-900 border border-slate-700 rounded-lg p-3 flex gap-3 items-center justify-between hover:border-indigo-500 transition";
+                    
+                    // Miniatuur weergave (van referentie of eindresultaat)
+                    const thumbSrc = proj.finishedImage || proj.originalImage;
+
+                    card.innerHTML = `
+                        <div class="flex items-center gap-3 overflow-hidden">
+                            <img src="${thumbSrc}" class="w-14 h-14 object-cover rounded border border-slate-700 shrink-0" alt="Miniatuur">
+                            <div class="overflow-hidden">
+                                <h3 class="font-semibold text-sm text-slate-200 truncate">${proj.title}</h3>
+                                <p class="text-[11px] text-slate-400">${proj.date} • ${proj.width}x${proj.height}cm</p>
+                                <span class="text-[10px] text-teal-400">${proj.finishedImage ? '✓ Eindresultaat aanwezig' : 'Alleen ontwerp'}</span>
+                            </div>
+                        </div>
+                        <div class="flex flex-col gap-1 shrink-0">
+                            <button onclick="loadProject('${proj.id}')" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-2.5 py-1 rounded transition">Laad</button>
+                            <button onclick="deleteProject('${proj.id}')" class="bg-red-600/70 hover:bg-red-600 text-white text-xs px-2.5 py-1 rounded transition">Wis</button>
+                        </div>
+                    `;
+                    galleryList.appendChild(card);
+                });
+            }
+
+            galleryModal.classList.remove('hidden');
+        }
+
+        function closeGallery() {
+            galleryModal.classList.add('hidden');
+        }
+
+        function loadProject(id) {
+            const projects = getStoredProjects();
+            const proj = projects.find(p => p.id === id);
+            if (!proj) return;
+
+            currentProjectId = proj.id;
+            projectNameInput.value = proj.title || "Mijn Schilderij";
+            document.getElementById('canvasWidth').value = proj.width || 80;
+            document.getElementById('canvasHeight').value = proj.height || 60;
+            rangeOpacity.value = proj.opacity || 100;
+            rangeContrast.value = proj.contrast || 100;
+            rangeBrightness.value = proj.brightness || 100;
+            checkGrayscale.checked = !!proj.grayscale;
+            checkGrid.checked = !!proj.grid;
+            if (proj.gridDensity) gridDensity.value = proj.gridDensity;
+            rangeRotate.value = proj.rotate || 0;
+            rangeSkewX.value = proj.skewX || 0;
+            rangeSkewY.value = proj.skewY || 0;
+
+            if (proj.originalImage) {
+                originalImageSrc = proj.originalImage;
+                loadAndDrawImage(originalImageSrc);
+            }
+
+            if (proj.finishedImage) {
+                finishedImageSrc = proj.finishedImage;
+                finishedPreviewImg.src = finishedImageSrc;
+                finishedContainer.classList.remove('hidden');
+            } else {
+                finishedImageSrc = null;
+                finishedContainer.classList.add('hidden');
+            }
+
+            updateTransform();
+            if (proj.grid) gridCanvas.classList.remove('hidden');
+            else gridCanvas.classList.add('hidden');
+
+            closeGallery();
+        }
+
+        function deleteProject(id) {
+            if (!confirm("Weet je zeker dat je dit project wilt verwijderen uit je galerij?")) return;
+            let projects = getStoredProjects();
+            projects = projects.filter(p => p.id !== id);
+            localStorage.setItem('schilder_projects', JSON.stringify(projects));
+            updateGalleryCount();
+            openGallery(); // Vernieuw de lijst
+        }
+
+        // Optioneel: Los JSON-bestand exporteren als back-up
+        function exportProjectJson() {
+            if (!originalImageSrc) {
+                alert("Laad eerst een ontwerp in!");
+                return;
+            }
+            const projectData = {
+                title: projectNameInput.value,
                 width: document.getElementById('canvasWidth').value,
                 height: document.getElementById('canvasHeight').value,
                 opacity: rangeOpacity.value,
@@ -440,68 +607,22 @@
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(projectData));
             const downloadAnchor = document.createElement('a');
             downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", "schilder_project.json");
+            downloadAnchor.setAttribute("download", `${projectNameInput.value.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_project.json`);
             document.body.appendChild(downloadAnchor);
             downloadAnchor.click();
             downloadAnchor.remove();
         }
-
-        // Project inladen vanuit bestand (.json)
-        document.getElementById('loadProjectFile').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                try {
-                    const data = JSON.parse(event.target.result);
-                    
-                    document.getElementById('canvasWidth').value = data.width || 80;
-                    document.getElementById('canvasHeight').value = data.height || 60;
-                    rangeOpacity.value = data.opacity || 100;
-                    rangeContrast.value = data.contrast || 100;
-                    rangeBrightness.value = data.brightness || 100;
-                    checkGrayscale.checked = !!data.grayscale;
-                    checkGrid.checked = !!data.grid;
-                    if (data.gridDensity) gridDensity.value = data.gridDensity;
-                    rangeRotate.value = data.rotate || 0;
-                    rangeSkewX.value = data.skewX || 0;
-                    rangeSkewY.value = data.skewY || 0;
-
-                    if (data.originalImage) {
-                        originalImageSrc = data.originalImage;
-                        loadAndDrawImage(originalImageSrc);
-                    }
-
-                    if (data.finishedImage) {
-                        finishedImageSrc = data.finishedImage;
-                        finishedPreviewImg.src = finishedImageSrc;
-                        finishedContainer.classList.remove('hidden');
-                    } else {
-                        finishedContainer.classList.add('hidden');
-                    }
-
-                    updateTransform();
-                    if (data.grid) gridCanvas.classList.remove('hidden');
-                    else gridCanvas.classList.add('hidden');
-
-                    alert("Project succesvol geladen!");
-                } catch (err) {
-                    alert("Fout bij laden van projectbestand.");
-                }
-            };
-            reader.readAsText(file);
-        });
 
         // Theatermodus wisselen
         function toggleTheaterMode() {
             document.body.classList.toggle('theater-mode');
         }
 
-        // Ook afsluiten met Escape toets
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && document.body.classList.contains('theater-mode')) {
-                toggleTheaterMode();
+            if (e.key === 'Escape') {
+                if (document.body.classList.contains('theater-mode')) toggleTheaterMode();
+                closeModal();
+                closeGallery();
             }
         });
     </script>
