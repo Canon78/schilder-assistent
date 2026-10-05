@@ -337,23 +337,38 @@
 
             const imgAspect = loadedImage.width / loadedImage.height;
 
-            let sWidth = loadedImage.width;
-            let sHeight = loadedImage.height;
-            let sx = 0;
-            let sy = 0;
+            let renderWidth, renderHeight;
+            let dx = 0, dy = 0;
 
-            // Snij de afbeelding automatisch passend bij naar de verhouding van het doek
-            if (imgAspect > targetAspect) {
-                sWidth = loadedImage.height * targetAspect;
-                sx = (loadedImage.width - sWidth) / 2;
+            // Vaste basisresolutie voor het canvas om scherp te blijven
+            const baseScale = 800;
+            if (targetAspect >= 1) {
+                renderWidth = baseScale;
+                renderHeight = baseScale / targetAspect;
             } else {
-                sHeight = loadedImage.width / targetAspect;
-                sy = (loadedImage.height - sHeight) / 2;
+                renderHeight = baseScale;
+                renderWidth = baseScale * targetAspect;
             }
 
-            canvas.width = sWidth;
-            canvas.height = sHeight;
+            canvas.width = renderWidth;
+            canvas.height = renderHeight;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Vul het canvas eerst met zwart (voor eventuele passende restruimte / letterboxing)
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, renderWidth, renderHeight);
+
+            // Bereken de positie zodat de gehele foto gecentreerd blijft en volledig past ('contain')
+            let drawW = renderWidth;
+            let drawH = renderHeight;
+
+            if (imgAspect > targetAspect) {
+                drawH = renderWidth / imgAspect;
+                dy = (renderHeight - drawH) / 2;
+            } else {
+                drawW = renderHeight * imgAspect;
+                dx = (renderWidth - drawW) / 2;
+            }
 
             const opacity = document.getElementById('rangeOpacity').value / 100;
             const contrast = document.getElementById('rangeContrast').value;
@@ -363,7 +378,7 @@
             ctx.globalAlpha = opacity;
             ctx.filter = `contrast(${contrast}%) brightness(${brightness}%) ${isGrayscale ? 'grayscale(100%)' : ''}`;
             
-            ctx.drawImage(loadedImage, sx, sy, sWidth, sHeight, 0, 0, sWidth, sHeight);
+            ctx.drawImage(loadedImage, 0, 0, loadedImage.width, loadedImage.height, dx, dy, drawW, drawH);
             ctx.filter = 'none';
             ctx.globalAlpha = 1.0;
             drawGrid();
