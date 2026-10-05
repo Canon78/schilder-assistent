@@ -104,7 +104,7 @@
 
                 <div class="flex items-center gap-2">
                     <input type="checkbox" id="checkGrid" class="accent-indigo-500 w-4 h-4">
-                    <label for="checkGrid" class="text-sm">Toon Hulplijn Raster</label>
+                    <label for="checkGrid" class="text-sm">Toon Hulplijn Raster (3x3)</label>
                 </div>
             </div>
 
@@ -162,8 +162,8 @@
             <!-- Container voor transformaties en raster -->
             <div id="transformContainer" class="relative transition-transform duration-75 origin-center flex items-center justify-center">
                 <canvas id="imageCanvas" class="max-w-full max-h-[75vh] object-contain shadow-2xl cursor-crosshair hidden"></canvas>
-                <!-- Dynamisch raster canvas overlay -->
-                <canvas id="gridCanvas" class="absolute inset-0 pointer-events-none hidden"></canvas>
+                <!-- Dynamisch raster canvas overlay die exact de afmetingen van het canvas volgt -->
+                <canvas id="gridCanvas" class="absolute inset-0 w-full h-full pointer-events-none hidden"></canvas>
             </div>
         </section>
 
@@ -258,13 +258,13 @@
             document.getElementById('valBrightness').innerText = rangeBrightness.value + '%';
         }
 
-        // Hulplijn raster tekenen
+        // Hulplijn raster tekenen (3x3 Regel van Derden)
         function drawGridLines() {
             gridCtx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
-            gridCtx.strokeStyle = 'rgba(99, 102, 241, 0.6)';
-            gridCtx.lineWidth = Math.max(2, gridCanvas.width / 300);
+            gridCtx.strokeStyle = 'rgba(99, 102, 241, 0.7)';
+            gridCtx.lineWidth = Math.max(2, gridCanvas.width / 400);
 
-            const cols = 4, rows = 4;
+            const cols = 3, rows = 3;
             const stepX = gridCanvas.width / cols;
             const stepY = gridCanvas.height / rows;
 
