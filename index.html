@@ -160,7 +160,11 @@
                 <div class="flex flex-col gap-2 pt-1">
                     <div class="flex items-center gap-2">
                         <input type="checkbox" id="checkGrayscale" class="accent-indigo-500 w-4 h-4">
-                        <label for="checkGrayscale" class="text-sm">Zwart-wit / Schetsmodus</label>
+                        <label for="checkGrayscale" class="text-sm">Zwart-wit / Grijstinten</label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="checkSketch" class="accent-indigo-500 w-4 h-4">
+                        <label for="checkSketch" class="text-sm font-semibold text-indigo-300">✏️ Lijntekening / Omtrekmodus</label>
                     </div>
                     <div class="flex items-center gap-2">
                         <input type="checkbox" id="checkInvert" class="accent-indigo-500 w-4 h-4">
@@ -190,7 +194,7 @@
                 
                 <!-- Spiegel opties -->
                 <div class="grid grid-cols-2 gap-2">
-                    <button onclick="toggleMirror('H')" id="btnMirrorH" class="bg-slate-900 border border-slate-700 hover:border-indigo-500 text-xs py-2 rounded text-slate-300 transition">↔️️ Spiegel Horizontaal</button>
+                    <button onclick="toggleMirror('H')" id="btnMirrorH" class="bg-slate-900 border border-slate-700 hover:border-indigo-500 text-xs py-2 rounded text-slate-300 transition">↔ Spiegel Horizontaal</button>
                     <button onclick="toggleMirror('V')" id="btnMirrorV" class="bg-slate-900 border border-slate-700 hover:border-indigo-500 text-xs py-2 rounded text-slate-300 transition">↕️ Spiegel Verticaal</button>
                 </div>
 
@@ -385,13 +389,62 @@
             const contrast = document.getElementById('rangeContrast').value;
             const brightness = document.getElementById('rangeBrightness').value;
             const isGrayscale = document.getElementById('checkGrayscale').checked;
+            const isSketch = document.getElementById('checkSketch').checked;
             const isInvert = document.getElementById('checkInvert').checked;
 
             ctx.globalAlpha = opacity;
-            let filterStr = `contrast(${contrast}%) brightness(${brightness}%) ${isGrayscale ? 'grayscale(100%)' : ''} ${isInvert ? 'invert(100%)' : ''}`;
-            ctx.filter = filterStr;
-            
-            ctx.drawImage(loadedImage, 0, 0, loadedImage.width, loadedImage.height, dx, dy, drawW, drawH);
+
+            if (isSketch) {
+                // Maak een tijdelijk klein canvas om randdetectie / schets-effect te berekenen
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = drawW;
+                tempCanvas.height = drawH;
+                const tCtx = tempCanvas.getContext('2d');
+                
+                // Teken foto in zwart-wit met hoog contrast
+                tCtx.filter = `contrast(180%) brightness(110%) grayscale(100%)`;
+                tCtx.drawImage(loadedImage, 0, 0, loadedImage.width, loadedImage.height, 0, 0, drawW, drawH);
+                
+                const imgData = tCtx.getImageData(0, 0, drawW, drawH);
+                const data = imgData.data;
+                const w = drawW;
+                const h = drawH;
+                
+                // Eenvoudige Sobel / randdetectie om contouren te vinden
+                const edgeData = tCtx.createImageData(w, h);
+                const dOut = edgeData.data;
+                
+                for (let y = 1; y < h - 1; y++) {
+                    for (let x = 1; x < w - 1; x++) {
+                        const idx = (y * w + x) * 4;
+                        // Simpele vergelijking met buurpixels (rechts en onder)
+                        const rightIdx = (y * w + (x + 1)) * 4;
+                        const bottomIdx = ((y + 1) * w + x) * 4;
+                        
+                        const diff = Math.abs(data[idx] - data[rightIdx]) + Math.abs(data[idx] - data[bottomIdx]);
+                        const val = diff > 30 ? 0 : 255; // Donkere lijn als er verschil is, anders wit
+                        
+                        dOut[idx] = val;
+                        dOut[idx+1] = val;
+                        dOut[idx+2] = val;
+                        dOut[idx+3] = 255;
+                    }
+                }
+                tCtx.putImageData(edgeData, 0, 0);
+
+                // Vul achtergrond wit en teken de contourlijnen erop
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(dx, dy, drawW, drawH);
+                
+                let sketchFilter = `${isInvert ? 'invert(100%)' : ''}`;
+                ctx.filter = sketchFilter;
+                ctx.drawImage(tempCanvas, dx, dy);
+            } else {
+                let filterStr = `contrast(${contrast}%) brightness(${brightness}%) ${isGrayscale ? 'grayscale(100%)' : ''} ${isInvert ? 'invert(100%)' : ''}`;
+                ctx.filter = filterStr;
+                ctx.drawImage(loadedImage, 0, 0, loadedImage.width, loadedImage.height, dx, dy, drawW, drawH);
+            }
+
             ctx.filter = 'none';
             ctx.globalAlpha = 1.0;
             drawGrid();
@@ -414,7 +467,7 @@
             const divisions = parseInt(document.getElementById('gridDensity').value);
             const stepX = gridCanvas.width / divisions;
             const stepY = gridCanvas.height / divisions;
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.strokeStyle = document.getElementById('checkSketch').checked ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.6)';
             ctx.lineWidth = Math.max(1, gridCanvas.width / 400);
             for (let i = 1; i < divisions; i++) {
                 ctx.beginPath();
@@ -494,7 +547,7 @@
             });
         });
 
-        ['checkGrayscale', 'checkInvert', 'checkGrid', 'gridDensity'].forEach(id => {
+        ['checkGrayscale', 'checkSketch', 'checkInvert', 'checkGrid', 'gridDensity'].forEach(id => {
             document.getElementById(id).addEventListener('input', () => {
                 redrawCanvas();
             });
@@ -727,6 +780,7 @@
                 document.getElementById(`input${type}Num`).value = defVal;
             });
             document.getElementById('checkGrayscale').checked = false;
+            document.getElementById('checkSketch').checked = false;
             document.getElementById('checkInvert').checked = false;
             redrawCanvas();
         };
